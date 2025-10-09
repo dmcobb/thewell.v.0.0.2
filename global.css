@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Updated to match official brand colors from logo */
+    /* The Well Brand Colors - Purple gradient sky, ocean water, faith-centered */
+    --background: 250 100% 98%; /* Soft cream/off-white */
+    --foreground: 215 25% 27%; /* Deep slate for text */
+
+    --card: 0 0% 100%; /* Pure white */
+    --card-foreground: 215 25% 27%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 27%;
+
+    /* Primary color now matches the purple from the logo */
+    --primary: 260 60% 65%; /* Lavender purple from logo */
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary color matches the ocean blue from logo */
+    --secondary: 200 50% 35%; /* Deep ocean blue from logo */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 260 40% 96%; /* Soft purple-gray */
+    --muted-foreground: 215 16% 47%;
+
+    /* Accent color for highlights and CTAs */
+    --accent: 320 70% 75%; /* Pink/magenta from logo gradient */
+    --accent-foreground: 215 25% 27%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 260 32% 91%;
+    --input: 260 32% 91%;
+    --ring: 260 60% 65%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer components {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
