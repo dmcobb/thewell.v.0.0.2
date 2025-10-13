@@ -32,12 +32,12 @@ export default function ProfileVideoScreen() {
         setExistingVideoUrl(user.profile_video_url)
       }
     } catch (error) {
-      console.error("[v0] Error loading existing video:", error)
+      console.error("[Anointed Innovations] Error loading existing video:", error)
     }
   }
 
   const handleVideoRecorded = (uri: string) => {
-    console.log("[v0] Video recorded:", uri)
+    console.log("[Anointed Innovations] Video recorded:", uri)
     setRecordedVideoUri(uri)
     setUploadSuccess(false)
   }
@@ -70,7 +70,7 @@ export default function ProfileVideoScreen() {
       clearInterval(progressInterval)
       setUploadProgress(100)
 
-      console.log("[v0] Video uploaded successfully:", response)
+      console.log("[Anointed Innovations] Video uploaded successfully:", response)
 
       // Update existing video URL
       setExistingVideoUrl(response.data.video_url)
@@ -86,7 +86,7 @@ export default function ProfileVideoScreen() {
         },
       ])
     } catch (error: any) {
-      console.error("[v0] Upload error:", error)
+      console.error("[Anointed Innovations] Upload error:", error)
       Alert.alert("Upload Failed", error.message || "Failed to upload video. Please try again.")
     } finally {
       setIsUploading(false)
@@ -108,7 +108,7 @@ export default function ProfileVideoScreen() {
             setRecordedVideoUri(null)
             Alert.alert("Success", "Your profile video has been deleted")
           } catch (error: any) {
-            console.error("[v0] Delete error:", error)
+            console.error("[Anointed Innovations] Delete error:", error)
             Alert.alert("Error", error.message || "Failed to delete video")
           } finally {
             setIsDeleting(false)

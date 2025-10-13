@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser)
       }
     } catch (error) {
-      console.error("[v0] Error loading user:", error)
+      console.error("[Anointed Innovations] Error loading user:", error)
     } finally {
       setIsLoading(false)
     }
@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await authService.login({ email, password })
       setUser(response.user)
     } catch (error) {
-      console.error("[v0] Login error:", error)
+      console.error("[Anointed Innovations] Login error:", error)
       throw error
     }
   }
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await authService.register(data)
       setUser(response.user)
     } catch (error) {
-      console.error("[v0] Register error:", error)
+      console.error("[Anointed Innovations] Register error:", error)
       throw error
     }
   }
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
       router.replace("/")
     } catch (error) {
-      console.error("[v0] Logout error:", error)
+      console.error("[Anointed Innovations] Logout error:", error)
       throw error
     }
   }

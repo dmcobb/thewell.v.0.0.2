@@ -33,7 +33,7 @@ export function VideoRecorder({ onVideoRecorded, maxDuration = 60, className = "
       const { status } = await Audio.requestPermissionsAsync()
       setAudioPermission(status === "granted")
     } catch (error) {
-      console.error("[v0] Error requesting audio permission:", error)
+      console.error("[Anointed Innovations] Error requesting audio permission:", error)
       setAudioPermission(false)
     }
   }
@@ -72,12 +72,12 @@ export function VideoRecorder({ onVideoRecorded, maxDuration = 60, className = "
       })
 
       if (video) {
-        console.log("[v0] Video recorded:", video.uri)
+        console.log("[Anointed Innovations] Video recorded:", video.uri)
         setRecordedUri(video.uri)
         onVideoRecorded?.(video.uri)
       }
     } catch (error) {
-      console.error("[v0] Error recording video:", error)
+      console.error("[Anointed Innovations] Error recording video:", error)
       Alert.alert("Error", "Failed to record video. Please try again.")
       setIsRecording(false)
     }
@@ -88,7 +88,7 @@ export function VideoRecorder({ onVideoRecorded, maxDuration = 60, className = "
       try {
         await cameraRef.current.stopRecording()
       } catch (error) {
-        console.error("[v0] Error stopping recording:", error)
+        console.error("[Anointed Innovations] Error stopping recording:", error)
       }
       setIsRecording(false)
 

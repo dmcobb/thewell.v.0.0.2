@@ -1,7 +1,7 @@
 // Get API URL from environment or use default
-export const API_URL = process.env.API_URL || "http://localhost:5000"
+export const API_URL = process.env.API_URL || "http://localhost:5432"
 export const API_VERSION = process.env.API_VERSION || "v1"
-export const SOCKET_URL = process.env.SOCKET_URL || "http://localhost:5000"
+export const SOCKET_URL = process.env.SOCKET_URL || "http://localhost:5432"
 
 // Build full API base URL
 export const API_BASE_URL = `${API_URL}/api/${API_VERSION}`

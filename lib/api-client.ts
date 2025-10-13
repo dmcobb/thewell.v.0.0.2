@@ -3,10 +3,12 @@ import { API_BASE_URL } from "./constants"
 
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean
+  timeout?: number
 }
 
 class ApiClient {
   private baseURL: string
+  private defaultTimeout = 10000 // 10 seconds
 
   constructor(baseURL: string) {
     this.baseURL = baseURL
@@ -16,17 +18,37 @@ class ApiClient {
     try {
       return await AsyncStorage.getItem("authToken")
     } catch (error) {
-      console.error("[v0] Error getting auth token:", error)
+      console.error("[Anointed Innovations] Error getting auth token:", error)
       return null
     }
   }
 
-  private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const { requiresAuth = true, headers = {}, ...restOptions } = options
+  private async fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-    const requestHeaders: HeadersInit = {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+      return response
+    } catch (error: any) {
+      clearTimeout(timeoutId)
+      if (error.name === "AbortError") {
+        throw new Error("Request timeout - please check your network connection and backend server")
+      }
+      throw error
+    }
+  }
+
+  private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+    const { requiresAuth = true, timeout = this.defaultTimeout, headers = {}, ...restOptions } = options
+
+    const requestHeaders: Record<string, string> = {
       "Content-Type": "application/json",
-      ...headers,
+      ...(headers as Record<string, string>),
     }
 
     if (requiresAuth) {
@@ -37,10 +59,14 @@ class ApiClient {
     }
 
     try {
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        ...restOptions,
-        headers: requestHeaders,
-      })
+      const response = await this.fetchWithTimeout(
+        `${this.baseURL}${endpoint}`,
+        {
+          ...restOptions,
+          headers: requestHeaders,
+        },
+        timeout,
+      )
 
       const data = await response.json()
 
@@ -49,8 +75,14 @@ class ApiClient {
       }
 
       return data
-    } catch (error) {
-      console.error("[v0] API request error:", error)
+    } catch (error: any) {
+      console.error("[Anointed Innovations] API request error:", error)
+      if (error.message?.includes("timeout")) {
+        throw new Error("Connection timeout. Make sure your backend server is running.")
+      }
+      if (error.message?.includes("Network request failed")) {
+        throw new Error("Network error. Check your API_URL configuration.")
+      }
       throw error
     }
   }
@@ -92,7 +124,7 @@ class ApiClient {
     const formData = new FormData()
     formData.append("file", file)
 
-    const requestHeaders: HeadersInit = {}
+    const requestHeaders: Record<string, string> = {}
     if (token) {
       requestHeaders["Authorization"] = `Bearer ${token}`
     }
@@ -112,7 +144,7 @@ class ApiClient {
 
       return data
     } catch (error) {
-      console.error("[v0] File upload error:", error)
+      console.error("[Anointed Innovations] File upload error:", error)
       throw error
     }
   }

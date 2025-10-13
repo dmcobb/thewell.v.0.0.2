@@ -59,7 +59,7 @@ class AuthService {
     try {
       await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT, {})
     } catch (error) {
-      console.error("[v0] Logout error:", error)
+      console.error("[Anointed Innovations] Logout error:", error)
     } finally {
       await AsyncStorage.removeItem("authToken")
       await AsyncStorage.removeItem("user")
@@ -71,7 +71,7 @@ class AuthService {
       const userStr = await AsyncStorage.getItem("user")
       return userStr ? JSON.parse(userStr) : null
     } catch (error) {
-      console.error("[v0] Error getting current user:", error)
+      console.error("[Anointed Innovations] Error getting current user:", error)
       return null
     }
   }

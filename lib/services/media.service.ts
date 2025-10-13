@@ -49,7 +49,7 @@ class MediaService {
 
       return data
     } catch (error) {
-      console.error("[v0] Video upload error:", error)
+      console.error("[Anointed Innovations] Video upload error:", error)
       throw error
     }
   }

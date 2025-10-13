@@ -8,7 +8,7 @@ class SocketService {
 
   async connect(): Promise<void> {
     if (this.socket?.connected) {
-      console.log("[v0] Socket already connected")
+      console.log("[Anointed Innovations] Socket already connected")
       return
     }
 
@@ -16,7 +16,7 @@ class SocketService {
       const token = await AsyncStorage.getItem("authToken")
 
       if (!token) {
-        console.error("[v0] No auth token found for socket connection")
+        console.error("[Anointed Innovations] No auth token found for socket connection")
         return
       }
 
@@ -25,24 +25,24 @@ class SocketService {
         transports: ["websocket"],
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
+        reconnectionDelayMax: 5432,
         reconnectionAttempts: 5,
       })
 
       this.socket.on("connect", () => {
-        console.log("[v0] Socket connected:", this.socket?.id)
+        console.log("[Anointed Innovations] Socket connected:", this.socket?.id)
       })
 
       this.socket.on("disconnect", (reason) => {
-        console.log("[v0] Socket disconnected:", reason)
+        console.log("[Anointed Innovations] Socket disconnected:", reason)
       })
 
       this.socket.on("connect_error", (error) => {
-        console.error("[v0] Socket connection error:", error.message)
+        console.error("[Anointed Innovations] Socket connection error:", error.message)
       })
 
       this.socket.on("error", (error) => {
-        console.error("[v0] Socket error:", error)
+        console.error("[Anointed Innovations] Socket error:", error)
       })
 
       // Re-attach all listeners after reconnection
@@ -50,7 +50,7 @@ class SocketService {
         this.reattachListeners()
       })
     } catch (error) {
-      console.error("[v0] Error connecting socket:", error)
+      console.error("[Anointed Innovations] Error connecting socket:", error)
     }
   }
 
@@ -59,7 +59,7 @@ class SocketService {
       this.socket.disconnect()
       this.socket = null
       this.listeners.clear()
-      console.log("[v0] Socket disconnected")
+      console.log("[Anointed Innovations] Socket disconnected")
     }
   }
 
@@ -92,7 +92,7 @@ class SocketService {
     if (this.socket?.connected) {
       this.socket.emit(event, data)
     } else {
-      console.warn("[v0] Socket not connected, cannot emit:", event)
+      console.warn("[Anointed Innovations] Socket not connected, cannot emit:", event)
     }
   }
 

@@ -1,9 +1,9 @@
 import { Stack } from "expo-router"
 import { StatusBar } from "expo-status-bar"
+import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context"
 import { useFonts } from "expo-font"
 import * as SplashScreen from "expo-splash-screen"
 import { useEffect } from "react"
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context"
 import "../global.css"
 import { AuthProvider } from "../contexts/auth-context"
 
@@ -21,6 +21,10 @@ export default function RootLayout() {
     }
   }, [fontsLoaded])
 
+  useEffect(() => {
+    console.log("[Anointed Innovations] RootLayout mounted, fonts loaded:", fontsLoaded)
+  }, [fontsLoaded])
+
   if (!fontsLoaded) {
     return null
   }
@@ -33,13 +37,14 @@ export default function RootLayout() {
           <Stack
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: "#E0F2FE" },
             }}
           >
             <Stack.Screen name="index" />
+            <Stack.Screen name="auth" />
             <Stack.Screen name="onboarding" />
             <Stack.Screen name="start-journey" />
-            <Stack.Screen name="profile/video" />
+            <Stack.Screen name="profile" />
+            <Stack.Screen name="(tabs)" />
           </Stack>
         </AuthProvider>
       </SafeAreaView>
