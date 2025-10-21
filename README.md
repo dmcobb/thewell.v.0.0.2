@@ -32,22 +32,22 @@ Create a `.env` file in the root directory (use `.env.example` as template):
 
 \`\`\`bash
 # API Configuration
-API_URL=http://localhost:5432          # For Android emulator: http://localhost:5432
+API_URL=http://localhost:5000          # For Android emulator: http://localhost:5000
 API_VERSION=v1
 
 # Socket.io Configuration
-SOCKET_URL=http://localhost:5432       # For Android emulator: http://localhost:5432
+SOCKET_URL=http://localhost:5000       # For Android emulator: http://localhost:5000
 
 # Environment
 NODE_ENV=development
 \`\`\`
 
 **Important for Android Emulator:**
-- Use `http://localhost:5432` instead of `http://localhost:5432` to connect to your local backend
+- Use `http://localhost:5000` instead of `http://localhost:5000` to connect to your local backend
 - `10.0.2.2` is the special IP that Android emulator uses to access the host machine's localhost
 
 **For Physical Android Device:**
-- Use your computer's local IP address (e.g., `http://192.168.1.100:5432`)
+- Use your computer's local IP address (e.g., `http://192.168.1.100:5000`)
 - Find your IP with `ipconfig` (Windows) or `ifconfig` (Mac/Linux)
 - Ensure your device and computer are on the same network
 
@@ -64,7 +64,7 @@ npm install
 npm start
 \`\`\`
 
-The backend should be running on `http://localhost:5432` before starting the mobile app.
+The backend should be running on `http://localhost:5000` before starting the mobile app.
 
 ### Development Workflow
 
@@ -170,7 +170,7 @@ The app uses `AuthContext` to manage authentication state and navigation:
 ## Project Structure
 
 \`\`\`
-the-well-app/
+thewell/
 ├── app/                    # Expo Router pages
 │   ├── _layout.tsx        # Root layout with SafeAreaProvider & AuthProvider
 │   ├── index.tsx          # Splash screen with login/signup
@@ -286,11 +286,11 @@ The app is configured with the following Android permissions:
 ## Troubleshooting
 
 ### Backend Connection Issues
-- Verify backend server is running on port 5432
+- Verify backend server is running on port 5000
 - Check `.env` file has correct API_URL for your setup
-- For Android emulator, use `http://localhost:5432`
+- For Android emulator, use `http://localhost:5000`
 - For physical device, use your computer's local IP address
-- Ensure firewall allows connections on port 5432
+- Ensure firewall allows connections on port 5000
 
 ### Android Emulator Issues
 - Ensure Android Studio is properly installed

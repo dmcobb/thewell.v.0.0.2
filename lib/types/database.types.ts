@@ -18,6 +18,7 @@ export interface User {
   is_verified: boolean
   is_active: boolean
   is_premium: boolean
+  profile_complete: boolean
   email_verified_at?: string
   phone_verified_at?: string
   last_active_at: string

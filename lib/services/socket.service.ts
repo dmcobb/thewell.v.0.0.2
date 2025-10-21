@@ -25,7 +25,7 @@ class SocketService {
         transports: ["websocket"],
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionDelayMax: 5432,
+        reconnectionDelayMax: 5000,
         reconnectionAttempts: 5,
       })
 

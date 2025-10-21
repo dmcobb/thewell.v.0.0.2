@@ -35,7 +35,8 @@
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
-      "versionCode": 1
+      "versionCode": 1,
+      "newArchEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png",

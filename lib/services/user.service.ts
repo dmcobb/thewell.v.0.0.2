@@ -73,6 +73,19 @@ export interface UserPreferences {
   maxDistance?: number
 }
 
+export interface OnboardingProgress {
+  currentStep: number
+  basicInfo?: {
+    dateOfBirth: string
+    gender: string
+    locationCity: string
+    locationState: string
+  }
+  questionnaireResponses?: QuestionnaireResponse[]
+  preferences?: UserPreferences
+  lastUpdated: string
+}
+
 class UserService {
   async getCurrentUser(): Promise<UserProfile> {
     const response = await apiClient.get<{ success: boolean; data: UserProfile }>(API_ENDPOINTS.USERS.PROFILE)
@@ -144,6 +157,58 @@ class UserService {
 
   async deleteAccount(password: string, reason?: string): Promise<{ success: boolean; message: string }> {
     return apiClient.delete(API_ENDPOINTS.USERS.DELETE, { password, reason })
+  }
+
+  async saveOnboardingProgress(progress: OnboardingProgress): Promise<{ success: boolean; message: string }> {
+    try {
+      return await apiClient.post(API_ENDPOINTS.USERS.SAVE_ONBOARDING_PROGRESS, progress)
+    } catch (error: any) {
+      if (
+        error.message?.includes("404") ||
+        error.message?.includes("Route not found") ||
+        error.message?.includes("HTML instead of JSON")
+      ) {
+        console.log("[Anointed Innovations] Onboarding progress endpoint not available - progress not saved")
+        return { success: false, message: "Endpoint not available" }
+      }
+      throw error
+    }
+  }
+
+  async getOnboardingProgress(): Promise<OnboardingProgress | null> {
+    try {
+      const response = await apiClient.get<{ success: boolean; data: OnboardingProgress | null }>(
+        API_ENDPOINTS.USERS.GET_ONBOARDING_PROGRESS,
+      )
+      return response.data
+    } catch (error: any) {
+      if (
+        error.message?.includes("404") ||
+        error.message?.includes("Route not found") ||
+        error.message?.includes("HTML instead of JSON")
+      ) {
+        console.log("[Anointed Innovations] Onboarding progress endpoint not implemented yet - starting fresh")
+        return null
+      }
+      console.log("[Anointed Innovations] No saved onboarding progress found")
+      return null
+    }
+  }
+
+  async clearOnboardingProgress(): Promise<{ success: boolean; message: string }> {
+    try {
+      return await apiClient.delete(API_ENDPOINTS.USERS.SAVE_ONBOARDING_PROGRESS)
+    } catch (error: any) {
+      if (
+        error.message?.includes("404") ||
+        error.message?.includes("Route not found") ||
+        error.message?.includes("HTML instead of JSON")
+      ) {
+        console.log("[Anointed Innovations] Onboarding progress endpoint not available - nothing to clear")
+        return { success: true, message: "Nothing to clear" }
+      }
+      throw error
+    }
   }
 }
 
