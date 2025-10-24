@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     console.log("[Anointed Innovations] Segments changed:", segments)
     console.log("[Anointed Innovations] isLoading:", isLoading, "user:", user)
+    console.log("[Anointed Innovations] User profileComplete:", user?.profileComplete)
 
     if (isLoading) return
 
@@ -56,6 +57,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       inTabs,
       "inIndex:",
       inIndex,
+      "user.profileComplete:",
+      user?.profileComplete
     )
 
     if (!user && !inAuthGroup && !inIndex) {
@@ -66,15 +69,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isNavigating.current = false
       }, 500)
     } else if (user) {
-      console.log("[Anointed Innovations] User exists, profileComplete:", user.profileComplete)
-      if (!user.profileComplete && !inOnboarding && !inStartJourney) {
+      // Use strict boolean check for profileComplete
+      const isProfileComplete = user.profileComplete === true
+      
+      console.log("[Anointed Innovations] User exists, isProfileComplete:", isProfileComplete)
+      
+      if (!isProfileComplete && !inOnboarding && !inStartJourney) {
         console.log("[Anointed Innovations] Profile incomplete - redirecting to onboarding")
         isNavigating.current = true
         router.replace("/onboarding")
         setTimeout(() => {
           isNavigating.current = false
         }, 500)
-      } else if (user.profileComplete && !inTabs) {
+      } else if (isProfileComplete && !inTabs) {
         console.log("[Anointed Innovations] Profile complete - redirecting to tabs")
         isNavigating.current = true
         router.replace("/(tabs)")
@@ -93,8 +100,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (isAuth) {
         console.log("[Anointed Innovations] User is authenticated, fetching current user...")
-        const currentUser = await authService.getCurrentUser()
+        let currentUser = await authService.getCurrentUser()
+        
+        // If user exists but profileComplete seems wrong, sync from backend
+        if (currentUser && currentUser.profileComplete === false) {
+          console.log("[Anointed Innovations] profileComplete is false, syncing from backend...")
+          const syncedUser = await authService.syncUserFromBackend()
+          if (syncedUser) {
+            currentUser = syncedUser
+          }
+        }
+        
         console.log("[Anointed Innovations] Current user loaded:", currentUser)
+        console.log("[Anointed Innovations] profileComplete value:", currentUser?.profileComplete)
+        console.log("[Anointed Innovations] profileComplete type:", typeof currentUser?.profileComplete)
+        
         setUser(currentUser)
 
         if (!currentUser.profileComplete) {

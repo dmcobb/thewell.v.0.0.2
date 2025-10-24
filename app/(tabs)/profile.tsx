@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { VideoPlayer } from "@/components/video-player"
 import { useAuth } from "@/contexts/auth-context"
+import { router } from "expo-router"
 
 export default function ProfileTab() {
   const { user, logout } = useAuth()
@@ -20,6 +21,7 @@ export default function ProfileTab() {
         style: "destructive",
         onPress: async () => {
           await logout()
+          router.replace("/")
         },
       },
     ])

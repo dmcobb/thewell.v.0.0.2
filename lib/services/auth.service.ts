@@ -63,7 +63,8 @@ class AuthService {
   private transformAuthResponse(backendResponse: BackendAuthResponse): AuthResponse {
     const { user, accessToken, refreshToken } = backendResponse.data
 
-    const profileComplete = user.profile_complete ?? !!(user.date_of_birth && user.gender)
+    // Use explicit boolean conversion - if profile_complete is true OR user has required fields
+    const profileComplete = user.profile_complete === true || !!(user.date_of_birth && user.gender)
 
     return {
       success: backendResponse.success,
@@ -150,16 +151,16 @@ class AuthService {
       const userStr = await AsyncStorage.getItem("user")
       if (userStr) {
         const currentUser = JSON.parse(userStr)
-
-        const syncedUpdates: any = { ...updates }
-        if ("profileComplete" in updates) {
-          syncedUpdates.profile_complete = updates.profileComplete
+        
+        // Handle profileComplete specifically to ensure it's a boolean
+        const processedUpdates: any = { ...updates }
+        
+        // Ensure profileComplete is properly set as boolean
+        if ('profileComplete' in processedUpdates) {
+          processedUpdates.profileComplete = Boolean(processedUpdates.profileComplete)
         }
-        if ("profile_complete" in (updates as any)) {
-          syncedUpdates.profileComplete = (updates as any).profile_complete
-        }
-
-        const updatedUser = { ...currentUser, ...syncedUpdates }
+        
+        const updatedUser = { ...currentUser, ...processedUpdates }
         await AsyncStorage.setItem("user", JSON.stringify(updatedUser))
         console.log("[Anointed Innovations] User updated in AsyncStorage:", updatedUser)
         return updatedUser
@@ -175,6 +176,51 @@ class AuthService {
     const token = await AsyncStorage.getItem("authToken")
     return !!token
   }
+
+  async syncUserFromBackend(): Promise<AuthResponse["user"] | null> {
+  try {
+    console.log("[Anointed Innovations] Syncing user data from backend...")
+    
+    // Use the user service to get current user instead of direct API call
+    const { userService } = await import("./user.service")
+    const userProfile = await userService.getCurrentUser()
+    
+    console.log("[Anointed Innovations] User profile from backend:", userProfile)
+    
+    // Transform the backend user profile to frontend format
+    const frontendUser = this.transformUserProfile(userProfile)
+    
+    await AsyncStorage.setItem("user", JSON.stringify(frontendUser))
+    console.log("[Anointed Innovations] User synced from backend:", frontendUser)
+    return frontendUser
+  } catch (error) {
+    console.error("[Anointed Innovations] Error syncing user from backend:", error)
+    return null
+  }
+}
+
+// Add this helper method to transform user profile
+private transformUserProfile(backendUser: any): AuthResponse["user"] {
+  console.log("[Anointed Innovations] Transforming user profile:", backendUser)
+  
+  // Use profile_complete from backend or calculate it
+  const profileComplete = backendUser.profile_complete === true || 
+                         !!(backendUser.date_of_birth && backendUser.gender)
+
+  return {
+    id: backendUser.id,
+    email: backendUser.email,
+    firstName: backendUser.first_name,
+    lastName: backendUser.last_name,
+    profileComplete,
+    emailVerified: backendUser.is_verified,
+    dateOfBirth: backendUser.date_of_birth,
+    gender: backendUser.gender,
+    bio: backendUser.bio,
+    locationCity: backendUser.location_city,
+    locationState: backendUser.location_state,
+  }
+}
 
   async verifyEmail(token: string): Promise<{ success: boolean }> {
     return apiClient.post(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { token }, { requiresAuth: false })
