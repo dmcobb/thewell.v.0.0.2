@@ -9,7 +9,7 @@ import { VideoPlayer } from "@/components/video-player"
 
 export default function DiscoverTab() {
   return (
-    <View className="flex-1 bg-gradient-to-b from-ocean-100 via-ocean-50 via-purple-50 to-ocean-100">
+    <View className="flex-1 bg-gradient-to-b from-ocean-100 via-ocean-50 to-ocean-100">
       {/* Header with Logo */}
       <LinearGradient
         colors={["#0891B2", "#0284C7", "#8B5CF6", "#0369A1"]}

@@ -21,7 +21,7 @@ export default function ProfileTab() {
         style: "destructive",
         onPress: async () => {
           await logout()
-          router.replace("/")
+          router.push("/")
         },
       },
     ])
