@@ -281,7 +281,7 @@ The app is configured with the following Android permissions:
 - Microphone access for audio recording
 - Internet access for API calls
 - Storage access for media files
-- Package name: `com.anointedinnovations.thewell`
+- Package name: `com.thewellapp.thewell`
 
 ## Troubleshooting
 
