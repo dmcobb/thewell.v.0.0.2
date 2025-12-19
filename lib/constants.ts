@@ -1,6 +1,6 @@
-export const API_URL = "http://192.168.1.85:5000"
+export const API_URL = "https://api.the-wellapp.com"
 export const API_VERSION = "v1"
-export const SOCKET_URL = "http://192.168.1.85:5000"
+export const SOCKET_URL = "https://api.the-wellapp.com"
 
 // Build full API base URL
 export const API_BASE_URL = `${API_URL}/api/${API_VERSION}`
