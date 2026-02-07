@@ -27,12 +27,12 @@ export interface BackendAuthResponse {
       last_name: string
       is_verified: boolean
       is_active: boolean
+      profile_complete?: boolean
       date_of_birth?: string
       gender?: string
       bio?: string
       location_city?: string
       location_state?: string
-      profile_complete?: boolean
     }
     accessToken: string
     refreshToken: string
@@ -63,7 +63,6 @@ class AuthService {
   private transformAuthResponse(backendResponse: BackendAuthResponse): AuthResponse {
     const { user, accessToken, refreshToken } = backendResponse.data
 
-    // Use explicit boolean conversion - if profile_complete is true OR user has required fields
     const profileComplete = user.profile_complete === true || !!(user.date_of_birth && user.gender)
 
     return {
@@ -87,22 +86,16 @@ class AuthService {
   }
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    console.log("[Anointed Innovations] Calling backend login API...")
     const backendResponse = await apiClient.post<BackendAuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials, {
       requiresAuth: false,
     })
 
-    console.log("[Anointed Innovations] Backend response received:", backendResponse)
-
     const response = this.transformAuthResponse(backendResponse)
-
-    console.log("[Anointed Innovations] Transformed response:", response)
 
     if (response.token) {
       await AsyncStorage.setItem("authToken", response.token)
       await AsyncStorage.setItem("refreshToken", response.refreshToken)
       await AsyncStorage.setItem("user", JSON.stringify(response.user))
-      console.log("[Anointed Innovations] Tokens and user saved to AsyncStorage")
     }
 
     return response
@@ -138,37 +131,34 @@ class AuthService {
 
   async getCurrentUser() {
     try {
+      const response = await apiClient.get<{ success: boolean; data: any }>(API_ENDPOINTS.USERS.PROFILE)
+
+      // Transform backend response to frontend format
+      const user = response.data
+      const transformedUser = {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        profileComplete: user.profile_complete ?? false,
+        emailVerified: user.is_verified ?? false,
+        dateOfBirth: user.date_of_birth,
+        gender: user.gender,
+        bio: user.bio,
+        locationCity: user.location_city,
+        locationState: user.location_state,
+      }
+
+
+      // Update AsyncStorage with fresh data
+      await AsyncStorage.setItem("user", JSON.stringify(transformedUser))
+
+      return transformedUser
+    } catch (error) {
+      console.error("[Anointed Innovations] Error fetching current user from backend:", error)
+      // Fallback to AsyncStorage if backend fails
       const userStr = await AsyncStorage.getItem("user")
       return userStr ? JSON.parse(userStr) : null
-    } catch (error) {
-      console.error("[Anointed Innovations] Error getting current user:", error)
-      return null
-    }
-  }
-
-  async updateCurrentUser(updates: Partial<AuthResponse["user"]>) {
-    try {
-      const userStr = await AsyncStorage.getItem("user")
-      if (userStr) {
-        const currentUser = JSON.parse(userStr)
-        
-        // Handle profileComplete specifically to ensure it's a boolean
-        const processedUpdates: any = { ...updates }
-        
-        // Ensure profileComplete is properly set as boolean
-        if ('profileComplete' in processedUpdates) {
-          processedUpdates.profileComplete = Boolean(processedUpdates.profileComplete)
-        }
-        
-        const updatedUser = { ...currentUser, ...processedUpdates }
-        await AsyncStorage.setItem("user", JSON.stringify(updatedUser))
-        console.log("[Anointed Innovations] User updated in AsyncStorage:", updatedUser)
-        return updatedUser
-      }
-      return null
-    } catch (error) {
-      console.error("[Anointed Innovations] Error updating current user:", error)
-      return null
     }
   }
 
@@ -176,51 +166,6 @@ class AuthService {
     const token = await AsyncStorage.getItem("authToken")
     return !!token
   }
-
-  async syncUserFromBackend(): Promise<AuthResponse["user"] | null> {
-  try {
-    console.log("[Anointed Innovations] Syncing user data from backend...")
-    
-    // Use the user service to get current user instead of direct API call
-    const { userService } = await import("./user.service")
-    const userProfile = await userService.getCurrentUser()
-    
-    console.log("[Anointed Innovations] User profile from backend:", userProfile)
-    
-    // Transform the backend user profile to frontend format
-    const frontendUser = this.transformUserProfile(userProfile)
-    
-    await AsyncStorage.setItem("user", JSON.stringify(frontendUser))
-    console.log("[Anointed Innovations] User synced from backend:", frontendUser)
-    return frontendUser
-  } catch (error) {
-    console.error("[Anointed Innovations] Error syncing user from backend:", error)
-    return null
-  }
-}
-
-// Add this helper method to transform user profile
-private transformUserProfile(backendUser: any): AuthResponse["user"] {
-  console.log("[Anointed Innovations] Transforming user profile:", backendUser)
-  
-  // Use profile_complete from backend or calculate it
-  const profileComplete = backendUser.profile_complete === true || 
-                         !!(backendUser.date_of_birth && backendUser.gender)
-
-  return {
-    id: backendUser.id,
-    email: backendUser.email,
-    firstName: backendUser.first_name,
-    lastName: backendUser.last_name,
-    profileComplete,
-    emailVerified: backendUser.is_verified,
-    dateOfBirth: backendUser.date_of_birth,
-    gender: backendUser.gender,
-    bio: backendUser.bio,
-    locationCity: backendUser.location_city,
-    locationState: backendUser.location_state,
-  }
-}
 
   async verifyEmail(token: string): Promise<{ success: boolean }> {
     return apiClient.post(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { token }, { requiresAuth: false })
@@ -231,7 +176,76 @@ private transformUserProfile(backendUser: any): AuthResponse["user"] {
   }
 
   async resetPassword(token: string, newPassword: string): Promise<{ success: boolean }> {
-    return apiClient.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, { token, newPassword }, { requiresAuth: false })
+    try {
+      const result = await apiClient.post<{ success: boolean }>(
+        API_ENDPOINTS.AUTH.RESET_PASSWORD,
+        { token, password: newPassword },
+        { requiresAuth: false },
+      )
+      return result
+    } catch (error) {
+      console.error("[Anointed Innovations] API call failed:", error)
+      throw error
+    }
+  }
+
+  async updateCurrentUser(updates: Partial<AuthResponse["user"]>) {
+    try {
+      const userStr = await AsyncStorage.getItem("user")
+      if (userStr) {
+        const currentUser = JSON.parse(userStr)
+
+        const processedUpdates: any = { ...updates }
+
+        if ("profileComplete" in processedUpdates) {
+          processedUpdates.profileComplete = Boolean(processedUpdates.profileComplete)
+        }
+
+        const updatedUser = { ...currentUser, ...processedUpdates }
+        await AsyncStorage.setItem("user", JSON.stringify(updatedUser))
+        return updatedUser
+      }
+      return null
+    } catch (error) {
+      console.error("[Anointed Innovations] Error updating current user:", error)
+      return null
+    }
+  }
+
+  async syncUserFromBackend(): Promise<AuthResponse["user"] | null> {
+    try {
+
+      const { userService } = await import("./user.service")
+      const userProfile = await userService.getCurrentUser()
+
+
+      const frontendUser = this.transformUserProfile(userProfile)
+
+      await AsyncStorage.setItem("user", JSON.stringify(frontendUser))
+      return frontendUser
+    } catch (error) {
+      console.error("[Anointed Innovations] Error syncing user from backend:", error)
+      return null
+    }
+  }
+
+  private transformUserProfile(backendUser: any): AuthResponse["user"] {
+
+    const profileComplete = backendUser.profile_complete === true || !!(backendUser.date_of_birth && backendUser.gender)
+
+    return {
+      id: backendUser.id,
+      email: backendUser.email,
+      firstName: backendUser.first_name,
+      lastName: backendUser.last_name,
+      profileComplete,
+      emailVerified: backendUser.is_verified,
+      dateOfBirth: backendUser.date_of_birth,
+      gender: backendUser.gender,
+      bio: backendUser.bio,
+      locationCity: backendUser.location_city,
+      locationState: backendUser.location_state,
+    }
   }
 }
 

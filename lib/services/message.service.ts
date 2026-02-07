@@ -37,7 +37,7 @@ class MessageService {
     content: string,
     type: "text" | "image" | "video" = "text",
   ): Promise<Message> {
-    return apiClient.post<Message>(API_ENDPOINTS.MESSAGES.SEND_MESSAGE, {
+    return apiClient.post<Message>(API_ENDPOINTS.MESSAGES.SEND_MESSAGE(conversationId), {
       conversationId,
       content,
       type,

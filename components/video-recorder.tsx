@@ -1,8 +1,8 @@
-import { useState, useRef } from "react"
-import { View, Text, Alert } from "react-native"
+import { useState, useRef, useEffect } from "react"
+import { View, Text, Alert, TouchableOpacity } from "react-native"
 import { CameraView, useCameraPermissions } from "expo-camera"
-import { Audio } from "expo-av"
-import { Play, Square, RotateCcw, Check, AlertCircle, Waves, CheckCircle } from "lucide-react-native"
+import * as Audio from "expo-audio"
+import { Play, Square, RotateCcw, Check, AlertCircle, Waves, CheckCircle, Upload, X } from "lucide-react-native"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -10,7 +10,7 @@ import { LinearGradient } from "expo-linear-gradient"
 import { cn } from "@/lib/utils"
 
 interface VideoRecorderProps {
-  onVideoRecorded?: (uri: string) => void
+  onVideoRecorded?: (uri: string | null) => void // Updated to handle null for cancel
   maxDuration?: number
   className?: string
 }
@@ -22,18 +22,30 @@ export function VideoRecorder({ onVideoRecorded, maxDuration = 60, className = "
   const [cameraPermission, requestCameraPermission] = useCameraPermissions()
   const [audioPermission, setAudioPermission] = useState<boolean | null>(null)
   const cameraRef = useRef<CameraView>(null)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  useState(() => {
+  useEffect(() => {
     requestAudioPermission()
-  })
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+    }
+  }, [])
 
   const requestAudioPermission = async () => {
     try {
-      const { status } = await Audio.requestPermissionsAsync()
-      setAudioPermission(status === "granted")
+      const status = await Audio.requestRecordingPermissionsAsync()
+      setAudioPermission(status.granted)
+      
+      if (!cameraPermission?.granted) {
+        await requestCameraPermission()
+      }
     } catch (error) {
-      console.error("[Anointed Innovations] Error requesting audio permission:", error)
+      console.error("[Anointed Innovations] Permission error:", error)
       setAudioPermission(false)
     }
   }
@@ -72,14 +84,18 @@ export function VideoRecorder({ onVideoRecorded, maxDuration = 60, className = "
       })
 
       if (video) {
-        console.log("[Anointed Innovations] Video recorded:", video.uri)
         setRecordedUri(video.uri)
-        onVideoRecorded?.(video.uri)
+        // Note: We no longer call onVideoRecorded here automatically 
+        // to give the user a chance to review/upload/cancel.
       }
     } catch (error) {
       console.error("[Anointed Innovations] Error recording video:", error)
       Alert.alert("Error", "Failed to record video. Please try again.")
       setIsRecording(false)
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
     }
   }
 
@@ -104,11 +120,9 @@ export function VideoRecorder({ onVideoRecorded, maxDuration = 60, className = "
     setRecordingTime(0)
   }
 
-  const confirmRecording = () => {
-    if (recordedUri) {
-      // Video is already passed via onVideoRecorded callback
-      // This button just provides visual confirmation
-    }
+  const handleCancel = () => {
+    resetRecording()
+    onVideoRecorded?.(null) // Signal parent to cancel the recording flow
   }
 
   const formatTime = (seconds: number) => {
@@ -150,7 +164,7 @@ export function VideoRecorder({ onVideoRecorded, maxDuration = 60, className = "
               }}
               size="sm"
             >
-              Allow Access
+              <Text className="text-white font-medium">Allow Access</Text>
             </Button>
           </View>
         </CardContent>
@@ -195,30 +209,64 @@ export function VideoRecorder({ onVideoRecorded, maxDuration = 60, className = "
 
         <View className="gap-3">
           {!recordedUri ? (
-            <Button
-              onPress={isRecording ? stopRecording : startRecording}
-              className={isRecording ? "bg-gradient-to-r from-primary via-secondary to-primary-light" : ""}
-            >
+            <View className="gap-3">
               {isRecording ? (
-                <View className="flex-row items-center gap-2">
-                  <Square size={16} color="white" />
-                  <Text className="text-white font-medium">Complete Story ({maxDuration - recordingTime}s left)</Text>
-                </View>
+                <TouchableOpacity
+                  onPress={stopRecording}
+                  className="bg-red-500 rounded-xl py-4 px-6 items-center justify-center"
+                  activeOpacity={0.8}
+                >
+                  <View className="flex-row items-center gap-2">
+                    <Square size={20} color="white" fill="white" />
+                    <Text className="text-white font-semibold text-base">
+                      Stop Recording ({maxDuration - recordingTime}s left)
+                    </Text>
+                  </View>
+                </TouchableOpacity>
               ) : (
-                <View className="flex-row items-center gap-2">
-                  <Play size={16} color="white" />
-                  <Text className="text-white font-medium">Share Your Story</Text>
+                <View className="gap-2">
+                  <Button onPress={startRecording}>
+                    <View className="flex-row items-center gap-2">
+                      <Play size={16} color="white" />
+                      <Text className="text-white font-medium">Share Your Story</Text>
+                    </View>
+                  </Button>
+                  <Button onPress={handleCancel} variant="ghost">
+                    <Text className="text-slate-500 font-medium">Cancel</Text>
+                  </Button>
                 </View>
               )}
-            </Button>
+            </View>
           ) : (
-            <View className="flex-row gap-3">
-              <Button onPress={resetRecording} variant="outline" className="flex-1 bg-transparent">
+            <View className="flex-col gap-3">
+              {/* Option 1: Upload Button */}
+              <Button 
+                onPress={() => onVideoRecorded?.(recordedUri)} 
+                className="bg-gradient-to-r from-ocean-500 to-purple-500 py-4"
+              >
                 <View className="flex-row items-center gap-2">
-                  <RotateCcw size={16} color="#8B5CF6" />
-                  <Text className="text-purple-500 font-medium">Re-record</Text>
+                  <Upload size={18} color="white" />
+                  <Text className="text-white font-bold text-lg">Upload Video Profile</Text>
                 </View>
               </Button>
+
+              <View className="flex-row gap-3">
+                {/* Re-record Option */}
+                <Button onPress={resetRecording} variant="outline" className="flex-1 bg-transparent">
+                  <View className="flex-row items-center gap-2">
+                    <RotateCcw size={16} color="#8B5CF6" />
+                    <Text className="text-purple-500 font-medium">Re-record</Text>
+                  </View>
+                </Button>
+
+                {/* Cancel Option */}
+                <Button onPress={handleCancel} variant="ghost" className="flex-1">
+                  <View className="flex-row items-center gap-2">
+                    <X size={16} color="#64748b" />
+                    <Text className="text-slate-500 font-medium">Cancel</Text>
+                  </View>
+                </Button>
+              </View>
             </View>
           )}
         </View>

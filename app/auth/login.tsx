@@ -84,7 +84,7 @@ export default function LoginScreen() {
         <TouchableOpacity
           onPress={handleLogin}
           disabled={isLoading}
-          className={`bg-primary rounded-xl py-4 px-6 shadow-lg mb-6 ${isLoading ? "opacity-50" : ""}`}
+          className={`bg-secondary rounded-xl py-4 px-6 shadow-lg mb-6 ${isLoading ? "opacity-50" : ""}`}
         >
           <Text className="text-primary-foreground text-center text-lg font-semibold">
             {isLoading ? "Signing In..." : "Sign In"}

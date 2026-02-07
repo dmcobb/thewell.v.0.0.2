@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { API_BASE_URL, API_ENDPOINTS } from "./constants"
+import { API_BASE_URL, API_ENDPOINTS } from "@/lib/constants"
 
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean
@@ -52,7 +52,6 @@ class ApiClient {
         return null
       }
 
-      console.log("[Anointed Innovations] Attempting to refresh token...")
 
       const response = await fetch(`${this.baseURL}${API_ENDPOINTS.AUTH.REFRESH}`, {
         method: "POST",
@@ -80,7 +79,6 @@ class ApiClient {
         if (newRefreshToken) {
           await AsyncStorage.setItem("refreshToken", newRefreshToken)
         }
-        console.log("[Anointed Innovations] Token refreshed successfully")
         return newAccessToken
       }
 
@@ -133,12 +131,6 @@ class ApiClient {
     }
 
     const fullUrl = `${this.baseURL}${endpoint}`
-    console.log("[Anointed Innovations] API Request:", {
-      baseURL: this.baseURL,
-      endpoint,
-      fullUrl,
-      method: restOptions.method || "GET",
-    })
 
     try {
       const response = await this.fetchWithTimeout(
@@ -150,14 +142,11 @@ class ApiClient {
         timeout,
       )
 
-      console.log("[Anointed Innovations] Response status:", response.status)
 
       if (response.status === 401 && requiresAuth && !_isRetry) {
-        console.log("[Anointed Innovations] Received 401, attempting token refresh...")
         const newToken = await this.refreshAuthToken()
 
         if (newToken) {
-          console.log("[Anointed Innovations] Token refreshed, retrying request...")
           // Retry the request with the new token
           return this.request<T>(endpoint, { ...options, _isRetry: true })
         } else {
@@ -166,41 +155,45 @@ class ApiClient {
         }
       }
 
-      console.log("[Anointed Innovations] Response content-type:", response.headers.get("content-type"))
 
       const contentType = response.headers.get("content-type")
-      if (contentType && contentType.includes("text/html")) {
-        const htmlText = await response.text()
-        console.error("[Anointed Innovations] Backend returned HTML instead of JSON:")
-        console.error("[Anointed Innovations] HTML Response:", htmlText.substring(0, 500))
-        throw new Error(
-          `Backend endpoint ${endpoint} returned HTML instead of JSON. Status: ${response.status}. This usually means the endpoint doesn't exist or has an error.`,
-        )
+
+      if (contentType && !contentType.includes("application/json")) {
+        const textError = await response.text()
+        console.error(`[Anointed Innovations] Non-JSON response from ${endpoint}:`, textError.substring(0, 200))
+        throw new Error(`Server returned ${response.status}: ${response.statusText}. Check if the endpoint exists.`)
       }
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.message || "An error occurred")
+        // Check if it's a validation error with field-specific messages
+        if (data.error && typeof data.error === "object") {
+          const fieldErrors = Object.entries(data.error)
+            .map(([field, msg]) => `${field}: ${msg}`)
+            .join(", ")
+          const errorMessage = `${data.message || "Validation failed"} - ${fieldErrors}`
+          console.error(`[Anointed Innovations] API Error [${response.status}] at ${endpoint}:`, data)
+          throw new Error(errorMessage)
+        }
+
+        const errorMessage = data.message || data.error || `Request failed with status ${response.status}`
+        console.error(`[Anointed Innovations] API Error [${response.status}] at ${endpoint}:`, data)
+        throw new Error(errorMessage)
       }
 
       return data
     } catch (error: any) {
-      console.error("[Anointed Innovations] API request error:", error)
-      console.error("[Anointed Innovations] Failed URL:", fullUrl)
-      console.error("[Anointed Innovations] Error details:", {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      })
+      // Re-throw if it's already an Error object we created
+      if (error.message && !error.message.includes("Unexpected token")) {
+        throw error
+      }
 
-      if (error.message?.includes("timeout")) {
-        throw new Error("Connection timeout. Make sure your backend server is running.")
-      }
-      if (error.message?.includes("Network request failed")) {
-        throw new Error(`Network error. Cannot reach ${fullUrl}. Is your backend running on port 5000?`)
-      }
-      throw error
+      console.error("[Anointed Innovations] Critical API failure:", {
+        url: fullUrl,
+        message: error.message,
+      })
+      throw new Error(`Connection error: ${error.message}`)
     }
   }
 

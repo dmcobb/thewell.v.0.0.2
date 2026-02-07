@@ -17,10 +17,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.thewell.thewellapp",
+      "bundleIdentifier": "com.thewell.dating.the-wellapp",
       "infoPlist": {
         "NSCameraUsageDescription": "The Well needs access to your camera to record your video story.",
-        "NSMicrophoneUsageDescription": "The Well needs access to your microphone to record audio for your video story."
+        "NSMicrophoneUsageDescription": "The Well needs access to your microphone to record audio for your video story.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
@@ -53,7 +57,10 @@
           "recordAudioAndroid": true
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-audio",
+      "expo-video",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true

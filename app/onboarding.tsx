@@ -81,7 +81,7 @@ export default function OnboardingScreen() {
         </View>
 
         {/* Next Button */}
-        <TouchableOpacity onPress={handleNext} className="bg-primary rounded-xl py-4 px-6 shadow-lg">
+        <TouchableOpacity onPress={handleNext} className="bg-secondary rounded-xl py-4 px-6 shadow-lg">
           <Text className="text-primary-foreground text-center text-lg font-semibold">
             {currentStep === onboardingSteps.length - 1 ? "Get Started" : "Next"}
           </Text>

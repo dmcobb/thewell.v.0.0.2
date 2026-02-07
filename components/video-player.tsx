@@ -1,6 +1,6 @@
-import { useState, useRef } from "react"
+import { useState } from "react"
 import { View, TouchableOpacity, Text } from "react-native"
-import { Video, ResizeMode, type AVPlaybackStatus } from "expo-av"
+import { VideoView, useVideoPlayer } from "expo-video"
 import { Play, Pause, Volume2, VolumeX, Maximize2 } from "lucide-react-native"
 import { Progress } from "@/components/ui/progress"
 import { LinearGradient } from "expo-linear-gradient"
@@ -18,32 +18,25 @@ export function VideoPlayer({ videoUrl, poster, className = "" }: VideoPlayerPro
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [showControls, setShowControls] = useState(true)
-  const videoRef = useRef<Video>(null)
 
-  const togglePlay = async () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        await videoRef.current.pauseAsync()
-      } else {
-        await videoRef.current.playAsync()
-      }
-      setIsPlaying(!isPlaying)
+  const player = useVideoPlayer(videoUrl, (player) => {
+    player.loop = false
+    player.muted = isMuted
+  })
+
+  const togglePlay = () => {
+    if (player.playing) {
+      player.pause()
+      setIsPlaying(false)
+    } else {
+      player.play()
+      setIsPlaying(true)
     }
   }
 
-  const toggleMute = async () => {
-    if (videoRef.current) {
-      await videoRef.current.setIsMutedAsync(!isMuted)
-      setIsMuted(!isMuted)
-    }
-  }
-
-  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      setCurrentTime(status.positionMillis / 1000)
-      setDuration(status.durationMillis ? status.durationMillis / 1000 : 0)
-      setIsPlaying(status.isPlaying)
-    }
+  const toggleMute = () => {
+    player.muted = !isMuted
+    setIsMuted(!isMuted)
   }
 
   const formatTime = (time: number) => {
@@ -56,15 +49,7 @@ export function VideoPlayer({ videoUrl, poster, className = "" }: VideoPlayerPro
 
   return (
     <View className={cn("relative bg-black rounded-xl overflow-hidden", className)}>
-      <Video
-        ref={videoRef}
-        source={{ uri: videoUrl }}
-        style={{ width: "100%", height: "100%" }}
-        resizeMode={ResizeMode.COVER}
-        isMuted={isMuted}
-        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-        useNativeControls={false}
-      />
+      <VideoView player={player} style={{ width: "100%", height: "100%" }} contentFit="cover" nativeControls={false} />
 
       {/* Play Button Overlay */}
       {!isPlaying && (

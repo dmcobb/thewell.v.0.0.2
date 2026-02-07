@@ -62,7 +62,7 @@ class MediaService {
     return apiClient.delete("/media/video/profile")
   }
 
-  async getVideoStreamUrl(videoKey: string): string {
+  async getVideoStreamUrl(videoKey: string): Promise<string> {
     return `${apiClient["baseURL"]}/media/video/stream/${videoKey}`
   }
 

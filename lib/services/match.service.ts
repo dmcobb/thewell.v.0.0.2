@@ -93,6 +93,34 @@ export interface CompatibilityInsights {
   overall_compatibility: number
 }
 
+export interface AIMatchResult {
+  id: string
+  first_name: string
+  last_name: string
+  bio: string
+  location_city: string
+  location_state: string
+  date_of_birth: string
+  gender: string
+  denomination: string
+  occupation: string
+  height_cm: number
+  profile_video_url: string | null
+  profile_video_thumbnail_url: string | null
+  photos: Array<{
+    id: string
+    photo_url: string
+    is_primary: boolean
+  }> | null
+  match_score: number
+  compatibility_insights: {
+    strengths: Array<{
+      area: string
+      importance: string
+    }>
+  }
+}
+
 class MatchService {
   async getDiscoverMatches(limit = 10, offset = 0): Promise<DiscoverUser[]> {
     const response = await apiClient.get<{ success: boolean; data: DiscoverUser[] }>(
@@ -113,13 +141,13 @@ class MatchService {
     return response.data
   }
 
-  async likeUser(userId: string): Promise<{ is_match: boolean; match_id: string | null }> {
-    const response = await apiClient.post<{ success: boolean; data: { is_match: boolean; match_id: string | null } }>(
-      API_ENDPOINTS.MATCHES.LIKE(userId),
-      {},
-    )
-    return response.data
-  }
+  async likeUser(userId: string): Promise<{ success: boolean; isMatch: boolean }> {
+  const response = await apiClient.post<{ success: boolean; isMatch: boolean }>(
+    API_ENDPOINTS.MATCHES.LIKE(userId),
+    {},
+  )
+  return response
+}
 
   async passUser(userId: string): Promise<{ success: boolean; message: string }> {
     return apiClient.post(API_ENDPOINTS.MATCHES.PASS(userId), {})
@@ -132,6 +160,13 @@ class MatchService {
   async getCompatibilityInsights(userId1: string, userId2: string): Promise<CompatibilityInsights> {
     const response = await apiClient.get<{ success: boolean; data: CompatibilityInsights }>(
       `${API_ENDPOINTS.MATCHES.GET_MATCHES}/compatibility?user1=${userId1}&user2=${userId2}`,
+    )
+    return response.data
+  }
+
+  async getAIMatch(): Promise<AIMatchResult | null> {
+    const response = await apiClient.get<{ success: boolean; data: AIMatchResult | null; message?: string }>(
+      "/matches/ai-match",
     )
     return response.data
   }

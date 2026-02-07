@@ -187,7 +187,7 @@ export interface Report {
 export interface Payment {
   id: string
   user_id: string
-  stripe_payment_id?: string
+  square_payment_id?: string
   amount: number
   currency: string
   payment_type: string
@@ -199,7 +199,7 @@ export interface Payment {
 export interface Subscription {
   id: string
   user_id: string
-  stripe_subscription_id?: string
+  square_subscription_id?: string
   plan_type: string
   status: "active" | "canceled" | "past_due" | "expired"
   current_period_start: string

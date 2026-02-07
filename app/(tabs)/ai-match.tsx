@@ -1,53 +1,188 @@
-import { View, Text, ScrollView } from "react-native"
-import { LinearGradient } from "expo-linear-gradient"
-import { Image } from "expo-image"
-import { Bell, Settings, Sparkles, Brain, MessageCircle, Heart, Waves } from "lucide-react-native"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
-import { VideoPlayer } from "@/components/video-player"
+import { View, Text, ScrollView, ActivityIndicator, Modal } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  Brain,
+  MessageCircle,
+  Heart,
+  Waves,
+  Sparkles,
+  Crown,
+} from 'lucide-react-native';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
+import { VideoPlayer } from '@/components/video-player';
+import { useState, useEffect } from 'react';
+import { matchService, type AIMatchResult } from '@/lib/services/match.service';
+import {
+  subscriptionService,
+  type SubscriptionStatus,
+} from '@/lib/services/subscription.service';
+import { SubscriptionPaywall } from '@/components/subscription-paywall';
+import { useRouter } from 'expo-router';
 
 export default function AIMatchTab() {
-  return (
-    <View className="flex-1 bg-gradient-to-b from-ocean-100 via-ocean-50 via-purple-50 to-ocean-100">
-      {/* Header with Logo */}
-      <LinearGradient
-        colors={["#0891B2", "#0284C7", "#8B5CF6", "#0369A1"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        className="relative overflow-hidden"
-      >
-        <View className="px-4 pt-12 pb-4">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 rounded-lg overflow-hidden shadow-lg bg-white">
-                <Image
-                  source={require("../../assets/icon.png")}
-                  className="w-full h-full"
-                  contentFit="cover"
-                  priority="high"
-                />
-              </View>
-              <View>
-                <Text className="text-xl font-bold text-white">The Well</Text>
-                <Text className="text-purple-100 text-xs">Christian Dating</Text>
-              </View>
-            </View>
-            <View className="flex-row items-center gap-3">
-              <Bell size={20} color="white" opacity={0.9} />
-              <Settings size={20} color="white" opacity={0.9} />
-            </View>
-          </View>
-          <Text className="text-purple-100 text-sm mt-2">Where Hearts Flow Together</Text>
-        </View>
-      </LinearGradient>
+  const router = useRouter();
+  const [match, setMatch] = useState<AIMatchResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [subscriptionStatus, setSubscriptionStatus] =
+    useState<SubscriptionStatus | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
 
+  useEffect(() => {
+    checkSubscriptionAndLoadMatch();
+  }, []);
+
+  const checkSubscriptionAndLoadMatch = async () => {
+    try {
+      const status = await subscriptionService.getUserSubscription();
+      setSubscriptionStatus(status);
+
+      if (status.is_premium) {
+        await loadAIMatch();
+      } else {
+        setLoading(false);
+        setShowPaywall(true);
+      }
+    } catch (error) {
+      console.error(
+        '[Anointed Innovations] Error checking subscription:',
+        error,
+      );
+      setLoading(false);
+      setShowPaywall(true);
+    }
+  };
+
+  const loadAIMatch = async () => {
+    try {
+      setLoading(true);
+      const aiMatch = await matchService.getAIMatch();
+      setMatch(aiMatch);
+      setLoading(false);
+    } catch (error) {
+      console.error('[Anointed Innovations] Error loading AI match:', error);
+      setLoading(false);
+    }
+  };
+
+  const handleLike = async () => {
+    if (!match) return;
+    try {
+      const result = await matchService.likeUser(match.id);
+      if (result.isMatch) {
+        // Initially blank
+      }
+      // Reload to get next match
+      await loadAIMatch();
+    } catch (error) {
+      console.error('[Anointed Innovations] Error liking user:', error);
+    }
+  };
+
+  const handlePass = async () => {
+    if (!match) return;
+    try {
+      await matchService.passUser(match.id);
+      // Reload to get next match
+      await loadAIMatch();
+    } catch (error) {
+      console.error('[Anointed Innovations] Error passing user:', error);
+    }
+  };
+
+  const handleSubscribe = async (planId: string) => {
+    try {
+      if (planId === 'trial') {
+        await subscriptionService.activateTrial();
+        setShowPaywall(false);
+        await checkSubscriptionAndLoadMatch();
+      } else {
+        // Handle paid subscription (implement Square integration)
+      }
+    } catch (error) {
+      console.error('[Anointed Innovations] Error subscribing:', error);
+    }
+  };
+
+  const calculateAge = (dateOfBirth: string) => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+    return age;
+  };
+
+  const getSectionName = (section: string) => {
+    const names: Record<string, string> = {
+      part_a: 'Faith Foundation',
+      part_b: 'Life Vision',
+      part_c: 'Heart Interests',
+      part_d: 'Communication',
+      part_e: 'Values Alignment',
+      part_f: 'Lifestyle Match',
+    };
+    return names[section] || section;
+  };
+
+  if (showPaywall) {
+    return (
+      <Modal
+        visible={showPaywall}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SubscriptionPaywall
+          onClose={() => router.back()}
+          onSubscribe={handleSubscribe}
+          hasUsedTrial={subscriptionStatus?.has_used_trial || false}
+        />
+      </Modal>
+    );
+  }
+
+  if (loading) {
+    return (
+      <View className="flex-1 bg-gradient-to-b from-ocean-100 via-ocean-50 to-ocean-100 items-center justify-center">
+        <ActivityIndicator size="large" color="#0891B2" />
+        <Text className="text-slate-600 mt-4">
+          Finding your perfect match...
+        </Text>
+      </View>
+    );
+  }
+
+  if (!match) {
+    return (
+      <View className="flex-1 bg-gradient-to-b from-ocean-100 via-ocean-50 to-ocean-100 items-center justify-center p-6">
+        <Heart size={64} color="#94a3b8" />
+        <Text className="text-slate-800 font-semibold text-xl mt-4 text-center">
+          No Matches Available
+        </Text>
+        <Text className="text-slate-600 text-center mt-2">
+          Check back soon for new AI-powered matches
+        </Text>
+        <Button onPress={loadAIMatch} className="mt-6">
+          <Text className="text-white font-medium">Refresh</Text>
+        </Button>
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1 bg-gradient-to-b from-ocean-100 via-ocean-50 to-ocean-100">
       <ScrollView className="flex-1" contentContainerClassName="p-4 pb-6">
         <View className="gap-6">
           <LinearGradient
-            colors={["#0891B2", "#0284C7", "#0369A1"]}
+            colors={['#0891B2', '#0284C7', '#0369A1']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             className="rounded-xl overflow-hidden shadow-xl"
@@ -55,9 +190,14 @@ export default function AIMatchTab() {
             <View className="p-4">
               <View className="flex-row items-center gap-2 mb-1">
                 <Brain size={24} color="white" />
-                <Text className="text-xl font-bold text-white">Soul Compass AI</Text>
+                <Text className="text-xl font-bold text-white">
+                  Soul Compass AI
+                </Text>
+                <Crown size={20} color="#fbbf24" />
               </View>
-              <Text className="text-sm text-white/90">Guided by faith, powered by understanding</Text>
+              <Text className="text-sm text-white/90">
+                Guided by faith, powered by understanding
+              </Text>
             </View>
           </LinearGradient>
 
@@ -65,53 +205,83 @@ export default function AIMatchTab() {
             <CardHeader>
               <View className="flex-row items-center gap-2">
                 <Sparkles size={20} color="#8B5CF6" />
-                <CardTitle className="text-purple-500">Divine Connection</CardTitle>
+                <CardTitle className="text-purple-500">
+                  Divine Connection
+                </CardTitle>
               </View>
-              <Text className="text-sm text-slate-600">A heart that resonates with yours</Text>
+              <Text className="text-sm text-slate-600">
+                A heart that resonates with yours
+              </Text>
             </CardHeader>
             <CardContent className="gap-4">
               <View className="flex-row items-center gap-3 mb-3">
                 <Avatar className="ring-2 ring-purple-200/50">
-                  <AvatarImage source={{ uri: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200" }} />
-                  <AvatarFallback className="bg-gradient-to-br from-ocean-400 to-primary">
-                    <Text className="text-white text-lg font-semibold">M</Text>
-                  </AvatarFallback>
+                  {match.photos && match.photos.length > 0 ? (
+                    <AvatarImage
+                      source={{
+                        uri:
+                          match.photos.find((p) => p.is_primary)?.photo_url ||
+                          match.photos[0].photo_url,
+                      }}
+                    />
+                  ) : (
+                    <AvatarFallback className="bg-gradient-to-br from-ocean-400 to-primary">
+                      <Text className="text-white text-lg font-semibold">
+                        {match.first_name[0]}
+                      </Text>
+                    </AvatarFallback>
+                  )}
                 </Avatar>
                 <View className="flex-1">
                   <View className="flex-row items-center gap-2">
-                    <Text className="font-semibold text-base text-slate-800">Michael, 32</Text>
+                    <Text className="font-semibold text-base text-slate-800">
+                      {match.first_name}, {calculateAge(match.date_of_birth)}
+                    </Text>
                     <Badge className="bg-gradient-to-r from-ocean-50 to-ocean-100 border-purple-200">
-                      <Text className="text-xs text-purple-500">94% harmony</Text>
+                      <Text className="text-xs text-purple-500">
+                        {Math.round(match.match_score)}% harmony
+                      </Text>
                     </Badge>
                   </View>
-                  <Text className="text-sm text-slate-600">Presbyterian • 5 miles away</Text>
+                  <Text className="text-sm text-slate-600">
+                    {match.denomination} • {match.location_city}
+                  </Text>
                 </View>
               </View>
 
-              <View className="aspect-video rounded-xl overflow-hidden shadow-md">
-                <VideoPlayer
-                  videoUrl="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-                  poster="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400"
-                  className="h-full"
-                />
-              </View>
+              {match.profile_video_url && (
+                <View className="aspect-video rounded-xl overflow-hidden shadow-md">
+                  <VideoPlayer
+                    videoUrl={match.profile_video_url}
+                    poster={match.profile_video_thumbnail_url || undefined}
+                    className="h-full"
+                  />
+                </View>
+              )}
 
-              <View className="bg-gradient-to-r from-ocean-50 to-ocean-100 p-4 rounded-xl border border-purple-200/50">
-                <Text className="text-sm text-purple-500 font-medium mb-2">Soul Resonance Analysis</Text>
-                <Text className="text-xs text-slate-600 leading-relaxed">
-                  Your hearts beat in harmony through shared faith values, complementary life goals, and a mutual love
-                  for worship and service.
-                </Text>
-              </View>
+              {match.bio && (
+                <View className="bg-gradient-to-r from-ocean-50 to-ocean-100 p-4 rounded-xl border border-purple-200/50">
+                  <Text className="text-sm text-purple-500 font-medium mb-2">
+                    Soul Resonance Analysis
+                  </Text>
+                  <Text className="text-xs text-slate-600 leading-relaxed">
+                    {match.bio}
+                  </Text>
+                </View>
+              )}
 
               <View className="flex-row gap-3">
-                <Button variant="outline" className="flex-1 h-10 bg-white">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-10 bg-white"
+                  onPress={handlePass}
+                >
                   <View className="flex-row items-center gap-2">
                     <MessageCircle size={16} color="#8B5CF6" />
-                    <Text className="text-purple-500 font-medium">Connect</Text>
+                    <Text className="text-purple-500 font-medium">Pass</Text>
                   </View>
                 </Button>
-                <Button className="flex-1 h-10">
+                <Button className="flex-1 h-10" onPress={handleLike}>
                   <View className="flex-row items-center gap-2">
                     <Heart size={16} color="white" />
                     <Text className="text-white font-medium">Like</Text>
@@ -121,48 +291,55 @@ export default function AIMatchTab() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg bg-white/95">
-            <CardHeader>
-              <View className="flex-row items-center gap-2">
-                <Waves size={20} color="#8B5CF6" />
-                <CardTitle className="text-purple-500">Harmony Levels</CardTitle>
-              </View>
-            </CardHeader>
-            <CardContent className="gap-4">
-              <View className="items-center">
-                <Text className="text-3xl font-bold text-purple-500 mb-2">92%</Text>
-                <Text className="text-sm text-slate-600">Deep Connection</Text>
-              </View>
-
-              <View className="gap-4">
-                <View className="bg-gradient-to-r from-ocean-50 to-ocean-100 p-3 rounded-xl">
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-sm text-slate-600">Faith Foundation</Text>
-                    <Text className="text-sm text-purple-500 font-medium">95%</Text>
+          {match.compatibility_insights &&
+            match.compatibility_insights.strengths.length > 0 && (
+              <Card className="shadow-lg bg-white/95">
+                <CardHeader>
+                  <View className="flex-row items-center gap-2">
+                    <Waves size={20} color="#8B5CF6" />
+                    <CardTitle className="text-purple-500">
+                      Harmony Levels
+                    </CardTitle>
                   </View>
-                  <Progress value={95} className="h-2 bg-white/50" />
-                </View>
-
-                <View className="bg-gradient-to-r from-ocean-100 to-ocean-50 p-3 rounded-xl">
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-sm text-slate-600">Life Vision</Text>
-                    <Text className="text-sm text-purple-500 font-medium">88%</Text>
+                </CardHeader>
+                <CardContent className="gap-4">
+                  <View className="items-center">
+                    <Text className="text-3xl font-bold text-purple-500 mb-2">
+                      {Math.round(match.match_score)}%
+                    </Text>
+                    <Text className="text-sm text-slate-600">
+                      Deep Connection
+                    </Text>
                   </View>
-                  <Progress value={88} className="h-2 bg-white/50" />
-                </View>
 
-                <View className="bg-gradient-to-r from-ocean-50 to-ocean-100 p-3 rounded-xl">
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-sm text-slate-600">Heart Interests</Text>
-                    <Text className="text-sm text-purple-500 font-medium">93%</Text>
+                  <View className="gap-4">
+                    {match.compatibility_insights.strengths
+                      .slice(0, 3)
+                      .map((strength, index) => (
+                        <View
+                          key={index}
+                          className="bg-gradient-to-r from-ocean-50 to-ocean-100 p-3 rounded-xl"
+                        >
+                          <View className="flex-row justify-between mb-2">
+                            <Text className="text-sm text-slate-600">
+                              {getSectionName(strength.area)}
+                            </Text>
+                            <Text className="text-sm text-purple-500 font-medium">
+                              {strength.importance === 'high' ? '95%' : '88%'}
+                            </Text>
+                          </View>
+                          <Progress
+                            value={strength.importance === 'high' ? 95 : 88}
+                            className="h-2 bg-white/50"
+                          />
+                        </View>
+                      ))}
                   </View>
-                  <Progress value={93} className="h-2 bg-white/50" />
-                </View>
-              </View>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            )}
         </View>
       </ScrollView>
     </View>
-  )
+  );
 }

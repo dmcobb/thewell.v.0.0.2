@@ -85,14 +85,29 @@ export const API_ENDPOINTS = {
   },
   // Payments
   PAYMENTS: {
+    CREATE_INTENT: "/payments/create-intent",
+    PROCESS: "/payments/process",
+    VERIFY: (paymentId: string) => `/payments/verify/${paymentId}`,
     CREATE_SUBSCRIPTION: "/payments/subscription",
     CANCEL_SUBSCRIPTION: "/payments/subscription/cancel",
     GET_PAYMENT_METHODS: "/payments/methods",
+    HISTORY: "/payments/history",
+    WEBHOOK: "/payments/webhook",
   },
   // Ads
   ADS: {
     GET_ADS: "/ads",
     TRACK_IMPRESSION: (id: string) => `/ads/${id}/impression`,
     TRACK_CLICK: (id: string) => `/ads/${id}/click`,
+  },
+  // Subscriptions
+  SUBSCRIPTIONS: {
+    GET_PLANS: "/subscriptions/plans",
+    GET_SUBSCRIPTION: "/subscriptions/me",
+    ACTIVATE_TRIAL: "/subscriptions/trial",
+    CHECK_DAILY_LIKES: "/subscriptions/daily-likes/check",
+    INCREMENT_DAILY_LIKES: "/subscriptions/daily-likes/increment",
+    CREATE_PAYMENT: "/subscriptions/create-payment",
+    VERIFY_PAYMENT: (paymentId: string) => `/subscriptions/verify-payment/${paymentId}`,
   },
 }

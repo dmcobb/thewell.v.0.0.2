@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform } from "react-native"
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, Modal } from "react-native"
 import { useRouter } from "expo-router"
 import { LinearGradient } from "expo-linear-gradient"
 import { useAuth } from "../../contexts/auth-context"
@@ -23,6 +23,29 @@ export default function SignupScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
+  // Production-ready age calculation that accounts for month and day
+  const calculateAge = (birthDate: Date): number => {
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+    
+    // If birthday hasn't occurred yet this year, subtract 1
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    
+    return age
+  }
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false)
+    }
+    if (selectedDate) {
+      setFormData({ ...formData, dateOfBirth: selectedDate })
+    }
+  }
+
   const handleSignup = async () => {
     // Validation
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.gender) {
@@ -40,10 +63,16 @@ export default function SignupScreen() {
       return
     }
 
-    // Check age (must be 18+)
-    const age = new Date().getFullYear() - formData.dateOfBirth.getFullYear()
+    // Production-ready age check (must be 18+)
+    const age = calculateAge(formData.dateOfBirth)
     if (age < 18) {
-      Alert.alert("Error", "You must be at least 18 years old to sign up")
+      Alert.alert("Age Requirement", "You must be at least 18 years old to create an account on The Well.")
+      return
+    }
+
+    // Additional validation: reasonable age range (18-120)
+    if (age > 120) {
+      Alert.alert("Invalid Date", "Please enter a valid date of birth.")
       return
     }
 
@@ -64,6 +93,14 @@ export default function SignupScreen() {
       setIsLoading(false)
     }
   }
+
+  // Calculate minimum date (must be at least 18 years old)
+  const maxDate = new Date()
+  maxDate.setFullYear(maxDate.getFullYear() - 18)
+
+  // Calculate maximum date (reasonable limit of 120 years)
+  const minDate = new Date()
+  minDate.setFullYear(minDate.getFullYear() - 120)
 
   return (
     <LinearGradient colors={["#E0F2FE", "#F0F9FF"]} className="flex-1">
@@ -122,23 +159,54 @@ export default function SignupScreen() {
               onPress={() => setShowDatePicker(true)}
               className="bg-card border border-input rounded-xl px-4 py-3"
             >
-              <Text className="text-base text-foreground">{formData.dateOfBirth.toLocaleDateString()}</Text>
+              <Text className="text-base text-foreground">
+                {formData.dateOfBirth.toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </Text>
             </TouchableOpacity>
-            {showDatePicker && (
+            <Text className="text-xs text-muted-foreground mt-1">You must be at least 18 years old</Text>
+          </View>
+
+          {/* iOS Date Picker Modal */}
+          {Platform.OS === "ios" ? (
+            <Modal visible={showDatePicker} transparent animationType="slide">
+              <View className="flex-1 justify-end bg-black/50">
+                <View className="bg-card rounded-t-3xl p-4">
+                  <View className="flex-row justify-between items-center mb-4">
+                    <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                      <Text className="text-primary font-medium">Cancel</Text>
+                    </TouchableOpacity>
+                    <Text className="text-foreground font-semibold">Select Date of Birth</Text>
+                    <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                      <Text className="text-primary font-medium">Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <DateTimePicker
+                    value={formData.dateOfBirth}
+                    mode="date"
+                    display="spinner"
+                    onChange={handleDateChange}
+                    maximumDate={maxDate}
+                    minimumDate={minDate}
+                  />
+                </View>
+              </View>
+            </Modal>
+          ) : (
+            showDatePicker && (
               <DateTimePicker
                 value={formData.dateOfBirth}
                 mode="date"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(Platform.OS === "ios")
-                  if (selectedDate) {
-                    setFormData({ ...formData, dateOfBirth: selectedDate })
-                  }
-                }}
-                maximumDate={new Date()}
+                display="default"
+                onChange={handleDateChange}
+                maximumDate={maxDate}
+                minimumDate={minDate}
               />
-            )}
-          </View>
+            )
+          )}
 
           <View>
             <Text className="text-sm font-medium text-foreground mb-2">Gender</Text>
@@ -212,9 +280,9 @@ export default function SignupScreen() {
         <TouchableOpacity
           onPress={handleSignup}
           disabled={isLoading}
-          className={`bg-primary rounded-xl py-4 px-6 shadow-lg mb-6 ${isLoading ? "opacity-50" : ""}`}
+          className={`bg-white rounded-xl py-4 px-6 shadow-lg mb-6 ${isLoading ? "opacity-50" : ""}`}
         >
-          <Text className="text-primary-foreground text-center text-lg font-semibold">
+          <Text className="text-purple-700 text-center text-lg font-semibold">
             {isLoading ? "Creating Account..." : "Create Account"}
           </Text>
         </TouchableOpacity>

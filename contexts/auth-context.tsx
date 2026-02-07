@@ -1,211 +1,166 @@
-import type React from "react"
-import { createContext, useContext, useState, useEffect, useRef } from "react"
-import { authService } from "../lib/services/auth.service"
-import { useRouter, useSegments } from "expo-router"
+import type React from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { authService } from '../lib/services/auth.service';
+import { useRouter, useSegments } from 'expo-router';
 
 interface AuthContextType {
-  user: any | null
-  isLoading: boolean
-  isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<void>
-  register: (data: any) => Promise<void>
-  logout: () => Promise<void>
-  refreshUser: () => Promise<void>
-  onboardingProgress: any | null
-  loadOnboardingProgress: () => Promise<void>
+  user: any | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (data: any) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+  onboardingProgress: any | null;
+  loadOnboardingProgress: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [onboardingProgress, setOnboardingProgress] = useState<any | null>(null)
-  const router = useRouter()
-  const segments = useSegments()
-  const isNavigating = useRef(false)
+  const [user, setUser] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [onboardingProgress, setOnboardingProgress] = useState<any | null>(
+    null,
+  );
+  const router = useRouter();
+  const segments = useSegments();
 
   useEffect(() => {
-    console.log("[Anointed Innovations] AuthProvider mounted, loading user...")
-    loadUser()
-  }, [])
+    loadUser();
+  }, []);
 
   useEffect(() => {
-    console.log("[Anointed Innovations] Segments changed:", segments)
-    console.log("[Anointed Innovations] isLoading:", isLoading, "user:", user)
-    console.log("[Anointed Innovations] User profileComplete:", user?.profileComplete)
+    if (isLoading) return;
 
-    if (isLoading) return
+    const inAuthGroup = segments[0] === 'auth';
+    const isDataMissing =
+      user &&
+      (!user.locationCity ||
+        !user.locationState ||
+        !user.gender ||
+        !user.dateOfBirth ||
+        !user.phone);
+    const inOnboarding = segments[0] === 'onboarding';
+    const inStartJourney = segments[0] === 'start-journey';
+    const inTabs = segments[0] === '(tabs)';
+    const isVideoProfile = segments[0] === 'profile' && segments[1] === 'video';
+    const inBrowse = segments[0] === 'browse';
+    const inSettings = segments[0] === 'settings';
+    const inAllowedScreens = inTabs || isVideoProfile || inBrowse || inSettings;
 
-    if (isNavigating.current) {
-      console.log("[Anointed Innovations] Navigation already in progress, skipping")
-      return
-    }
-
-    const inAuthGroup = segments[0] === "auth"
-    const inOnboarding = segments[0] === "onboarding"
-    const inStartJourney = segments[0] === "start-journey"
-    const inTabs = segments[0] === "(tabs)"
-    const inIndex = !inAuthGroup && !inOnboarding && !inStartJourney && !inTabs
-
-    console.log(
-      "[Anointed Innovations] Navigation check - inAuthGroup:",
-      inAuthGroup,
-      "inOnboarding:",
-      inOnboarding,
-      "inTabs:",
-      inTabs,
-      "inIndex:",
-      inIndex,
-      "user.profileComplete:",
-      user?.profileComplete
-    )
-
-    if (!user && !inAuthGroup && !inIndex) {
-      console.log("[Anointed Innovations] No user and not in auth - redirecting to splash")
-      isNavigating.current = true
-      router.replace("/")
-      setTimeout(() => {
-        isNavigating.current = false
-      }, 500)
+    if (!user && !inAuthGroup) {
+      // Not authenticated and not in auth screens - redirect to splash
+      router.replace('/');
     } else if (user) {
-      // Use strict boolean check for profileComplete
-      const isProfileComplete = user.profileComplete === true
-      
-      console.log("[Anointed Innovations] User exists, isProfileComplete:", isProfileComplete)
-      
-      if (!isProfileComplete && !inOnboarding && !inStartJourney) {
-        console.log("[Anointed Innovations] Profile incomplete - redirecting to onboarding")
-        isNavigating.current = true
-        router.replace("/onboarding")
-        setTimeout(() => {
-          isNavigating.current = false
-        }, 500)
-      } else if (isProfileComplete && !inTabs) {
-        console.log("[Anointed Innovations] Profile complete - redirecting to tabs")
-        isNavigating.current = true
-        router.replace("/(tabs)")
-        setTimeout(() => {
-          isNavigating.current = false
-        }, 500)
+      // User is authenticated - check profile completion
+      if (
+        !user.profileComplete &&
+        !inOnboarding &&
+        !inStartJourney &&
+        isDataMissing
+      ) {
+        // Profile not complete - redirect to start journey
+        router.replace('/onboarding');
+      } else if (user.profileComplete && !inAllowedScreens) {
+        router.replace('/(tabs)');
       }
     }
-  }, [user, segments, isLoading])
+  }, [user, segments, isLoading]);
 
   const loadUser = async () => {
     try {
-      console.log("[Anointed Innovations] Checking if user is authenticated...")
-      const isAuth = await authService.isAuthenticated()
-      console.log("[Anointed Innovations] isAuthenticated result:", isAuth)
+      const isAuth = await authService.isAuthenticated();
 
       if (isAuth) {
-        console.log("[Anointed Innovations] User is authenticated, fetching current user...")
-        let currentUser = await authService.getCurrentUser()
-        
-        // If user exists but profileComplete seems wrong, sync from backend
-        if (currentUser && currentUser.profileComplete === false) {
-          console.log("[Anointed Innovations] profileComplete is false, syncing from backend...")
-          const syncedUser = await authService.syncUserFromBackend()
-          if (syncedUser) {
-            currentUser = syncedUser
-          }
-        }
-        
-        console.log("[Anointed Innovations] Current user loaded:", currentUser)
-        console.log("[Anointed Innovations] profileComplete value:", currentUser?.profileComplete)
-        console.log("[Anointed Innovations] profileComplete type:", typeof currentUser?.profileComplete)
-        
-        setUser(currentUser)
+        const currentUser = await authService.getCurrentUser();
+        setUser(currentUser);
 
         if (!currentUser.profileComplete) {
-          await loadOnboardingProgress()
+          await loadOnboardingProgress();
         }
-      } else {
-        console.log("[Anointed Innovations] User is not authenticated")
       }
     } catch (error: any) {
-      console.error("[Anointed Innovations] Error loading user:", error)
-      if (error.message?.includes("timeout") || error.message?.includes("Network")) {
-        console.warn("[Anointed Innovations] Backend unreachable - user will need to login")
+      console.error('[Anointed Innovations] Error loading user:', error);
+      if (
+        error.message?.includes('timeout') ||
+        error.message?.includes('Network')
+      ) {
+        console.warn(
+          '[Anointed Innovations] Backend unreachable - user will need to login',
+        );
       }
     } finally {
-      console.log("[Anointed Innovations] Setting isLoading to false")
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const loadOnboardingProgress = async () => {
     try {
-      const { userService } = await import("../lib/services/user.service")
-      const progress = await userService.getOnboardingProgress()
+      const { userService } = await import('../lib/services/user.service');
+      const progress = await userService.getOnboardingProgress();
       if (progress) {
-        console.log("[Anointed Innovations] Loaded onboarding progress:", progress)
-        setOnboardingProgress(progress)
+        setOnboardingProgress(progress);
       } else {
-        console.log("[Anointed Innovations] No saved onboarding progress - starting from beginning")
-        setOnboardingProgress(null)
+        setOnboardingProgress(null);
       }
     } catch (error: any) {
-      console.log("[Anointed Innovations] Could not load onboarding progress - starting from beginning")
-      setOnboardingProgress(null)
+      setOnboardingProgress(null);
     }
-  }
+  };
 
   const login = async (email: string, password: string) => {
     try {
-      console.log("[Anointed Innovations] Login attempt with email:", email)
-      const response = await authService.login({ email, password })
-      console.log("[Anointed Innovations] Login response:", JSON.stringify(response, null, 2))
-      console.log("[Anointed Innovations] User object:", JSON.stringify(response.user, null, 2))
-      console.log("[Anointed Innovations] Setting user state...")
-      setUser(response.user)
+      const response = await authService.login({ email, password });
 
-      if (!response.user.profileComplete) {
-        await loadOnboardingProgress()
+      const syncedUser = await authService.syncUserFromBackend();
+
+      if (syncedUser) {
+        setUser(syncedUser);
+      } else {
+        // Fallback to login response if sync fails
+        setUser(response.user);
       }
 
-      console.log("[Anointed Innovations] User state set, navigation should trigger")
+      if (!syncedUser?.profileComplete && !response.user.profileComplete) {
+        await loadOnboardingProgress();
+      }
     } catch (error) {
-      console.error("[Anointed Innovations] Login error:", error)
-      throw error
+      console.error('[Anointed Innovations] Login error:', error);
+      throw error;
     }
-  }
+  };
 
   const register = async (data: any) => {
     try {
-      const response = await authService.register(data)
-      setUser(response.user)
+      const response = await authService.register(data);
+      setUser(response.user);
     } catch (error) {
-      console.error("[Anointed Innovations] Register error:", error)
-      throw error
+      console.error('[Anointed Innovations] Register error:', error);
+      throw error;
     }
-  }
+  };
 
   const logout = async () => {
     try {
-      isNavigating.current = false
-      await authService.logout()
-      setUser(null)
-      setOnboardingProgress(null)
-      setTimeout(() => {
-        router.replace("/")
-      }, 100)
+      await authService.logout();
+      setUser(null);
+      setOnboardingProgress(null);
+      router.replace('/auth/login');
     } catch (error) {
-      console.error("[Anointed Innovations] Logout error:", error)
-      throw error
+      console.error('[Anointed Innovations] Logout error:', error);
+      throw error;
     }
-  }
+  };
 
   const refreshUser = async () => {
     try {
-      console.log("[Anointed Innovations] Refreshing user data...")
-      const currentUser = await authService.getCurrentUser()
-      console.log("[Anointed Innovations] User refreshed:", currentUser)
-      setUser(currentUser)
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
     } catch (error) {
-      console.error("[Anointed Innovations] Error refreshing user:", error)
+      console.error('[Anointed Innovations] Error refreshing user:', error);
     }
-  }
+  };
 
   return (
     <AuthContext.Provider
@@ -223,13 +178,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     >
       {children}
     </AuthContext.Provider>
-  )
+  );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context
+  return context;
 }

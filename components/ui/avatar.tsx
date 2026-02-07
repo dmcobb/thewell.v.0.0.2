@@ -29,7 +29,7 @@ interface AvatarFallbackProps {
 export function AvatarFallback({ children, className }: AvatarFallbackProps) {
   return (
     <View
-      className={cn("w-full h-full items-center justify-center bg-gradient-to-br from-ocean-400 to-primary", className)}
+      className={cn("w-full h-full items-center justify-center bg-linear-to-br from-ocean-400 to-primary", className)}
     >
       {typeof children === "string" ? <Text className="text-white text-lg font-semibold">{children}</Text> : children}
     </View>
