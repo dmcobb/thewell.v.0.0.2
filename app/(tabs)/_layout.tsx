@@ -1,13 +1,13 @@
 import { Tabs } from 'expo-router';
 import {
-  Compass,
+  HouseHeart,
   Heart,
   Sparkles,
   Scale,
   BookOpen,
   MessageCircle,
   User,
-  Eye,
+  ThumbsUp,
 } from 'lucide-react-native';
 
 export default function TabLayout() {
@@ -28,9 +28,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Discover',
+          title: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <Compass size={size} color={color} />
+            <HouseHeart size={size} color={color} />
           ),
         }}
       />
@@ -45,7 +45,9 @@ export default function TabLayout() {
         name="likes"
         options={{
           title: 'Likes',
-          tabBarIcon: ({ color, size }) => <Eye size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <ThumbsUp size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
