@@ -134,7 +134,7 @@ export default function BrowseScreen() {
         await checkSubscriptionStatus();
       }
 
-      if (result.isMatch) {
+      if (result.is_match) {
         // Optional: I can use this to show a match notification or something
       }
 
@@ -207,7 +207,7 @@ export default function BrowseScreen() {
         end={{ x: 1, y: 0 }}
         className="relative overflow-hidden"
       >
-        <View className="px-4 pt-12 pb-4">
+        <View className="p-4">
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-3 mb-4">
               <Button variant="ghost" size="sm" onPress={() => router.back()}>

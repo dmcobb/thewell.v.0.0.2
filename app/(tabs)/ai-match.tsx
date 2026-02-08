@@ -72,7 +72,7 @@ export default function AIMatchTab() {
     if (!match) return;
     try {
       const result = await matchService.likeUser(match.id);
-      if (result.isMatch) {
+      if (result.is_match) {
         // Initially blank
       }
       // Reload to get next match

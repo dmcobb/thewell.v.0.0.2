@@ -58,6 +58,7 @@
     "@types/react": "~19.1.10",
     "@types/react-native-square-in-app-payments": "^1.4.4",
     "babel-preset-expo": "~54.0.0",
+    "react-native-builder-bob": "^0.40.17",
     "typescript": "~5.9.2"
   },
   "private": true

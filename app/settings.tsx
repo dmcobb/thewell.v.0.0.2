@@ -331,19 +331,14 @@ export default function SettingsScreen() {
                   <CreditCard size={20} color="#8B5CF6" />
                   <CardTitle>Subscription</CardTitle>
                 </View>
-                <Text className="text-sm text-slate-600">
-                  Active: {subscription?.subscription?.plan_name}
-                </Text>
               </CardHeader>
               <CardContent className="gap-3">
                 <View className="bg-slate-50 rounded-lg p-3 mb-2">
-                  <Text className="text-xs text-slate-500 mb-1">
-                    Expires:{' '}
-                    {subscription?.subscription?.expires_at
-                      ? new Date(
-                          subscription.subscription.expires_at,
-                        ).toLocaleDateString()
-                      : 'N/A'}
+                  <Text className="text-sm text-slate-700 font-medium mb-2">
+                    {`Active: ${subscription?.subscription?.plan_name || 'Premium'}`}
+                  </Text>
+                  <Text className="text-xs text-slate-500">
+                    {`Expires: ${subscription?.subscription?.expires_at ? new Date(subscription.subscription.expires_at).toLocaleDateString() : 'N/A'}`}
                   </Text>
                 </View>
                 <Button

@@ -23,6 +23,23 @@ export interface DiscoverUser {
   match_score: number
 }
 
+export interface LikedUser {
+  id: string
+  first_name: string
+  last_name: string
+  bio: string
+  location_city: string
+  location_state: string
+  gender: string
+  denomination: string
+  occupation: string
+  height_cm: number
+  profile_video_thumbnail_url: string | null
+  primary_photo: string | null
+  match_score: number
+  liked_at: string
+}
+
 export interface Match {
   id: string
   matched_user_id: string
@@ -141,13 +158,22 @@ class MatchService {
     return response.data
   }
 
-  async likeUser(userId: string): Promise<{ success: boolean; isMatch: boolean }> {
-  const response = await apiClient.post<{ success: boolean; isMatch: boolean }>(
-    API_ENDPOINTS.MATCHES.LIKE(userId),
-    {},
-  )
-  return response
-}
+  async getLikedUsers(): Promise<LikedUser[]> {
+    const response = await apiClient.get<{ success: boolean; data: LikedUser[] }>(API_ENDPOINTS.MATCHES.GET_LIKES)
+    return response.data
+  }
+
+  async likeUser(userId: string): Promise<{ is_match: boolean; match_id: string | null }> {
+    const response = await apiClient.post<{ success: boolean; data: { is_match: boolean; match_id: string | null } }>(
+      API_ENDPOINTS.MATCHES.LIKE(userId),
+      {},
+    )
+    return response.data
+  }
+
+  async unlikeUser(userId: string): Promise<{ success: boolean; message: string }> {
+    return apiClient.post(API_ENDPOINTS.MATCHES.UNLIKE(userId), {})
+  }
 
   async passUser(userId: string): Promise<{ success: boolean; message: string }> {
     return apiClient.post(API_ENDPOINTS.MATCHES.PASS(userId), {})

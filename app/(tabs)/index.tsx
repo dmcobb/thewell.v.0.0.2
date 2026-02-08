@@ -66,7 +66,7 @@ export default function DiscoverTab() {
   const handleLike = async (userId: string) => {
     try {
       const result = await matchService.likeUser(userId);
-      if (result.isMatch) {
+      if (result.is_match) {
         // Initially empty
       }
       // Move to next profile

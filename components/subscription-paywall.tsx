@@ -6,7 +6,7 @@ import {
   Sparkles,
   Heart,
   MessageCircle,
-  Brain,
+  Flame,
   CreditCard,
 } from 'lucide-react-native';
 import { Button } from '@/components/ui/button';
@@ -67,6 +67,7 @@ export function SubscriptionPaywall({
     }
   };
 
+  // In subscription-paywall.tsx, update the handleSubscribe function:
   const handleSubscribe = async () => {
     if (!selectedPlan) return;
 
@@ -78,45 +79,52 @@ export function SubscriptionPaywall({
         Alert.alert('Success', result.message);
         onSubscribe(selectedPlan);
       } else {
-        // Start Square card entry flow
+        const planData = plans.find((p) => p.id === selectedPlan);
+        if (!planData) {
+          throw new Error('Plan not found');
+        }
+
+        // Start Square card entry flow with plan data
         startCardEntry(
-          (cardDetails: any) => {
+          planData,
+          async (cardDetails: any) => {
             console.log(
-              '[Anointed Innovations] Card nonce received:',
+              '[Anointed Innovations] Card nonce received (modal should be closed):',
               cardDetails.nonce,
             );
 
-            // Process payment through backend
-            subscriptionService
-              .processPayment(selectedPlan, cardDetails.nonce)
-              .then((result) => {
-                if (result.success) {
-                  Alert.alert(
-                    'Success',
-                    'Payment processed successfully! Enjoy your subscription.',
-                  );
-                  onSubscribe(selectedPlan);
-                  onClose();
-                } else {
-                  Alert.alert(
-                    'Error',
-                    result.message || 'Payment processing failed',
-                  );
-                }
-              })
-              .catch((error: any) => {
-                console.error(
-                  '[Anointed Innovations] Payment processing error:',
-                  error,
+            try {
+              // Process payment through backend
+              const result = await subscriptionService.processPayment(
+                selectedPlan,
+                cardDetails.nonce,
+              );
+
+              if (result.success) {
+                Alert.alert(
+                  'Success',
+                  'Payment processed successfully! Enjoy your subscription.',
                 );
+                onSubscribe(selectedPlan);
+                onClose();
+              } else {
                 Alert.alert(
                   'Error',
-                  error.message || 'Failed to process payment',
+                  result.message || 'Payment processing failed',
                 );
-              })
-              .finally(() => {
-                setProcessing(false);
-              });
+              }
+            } catch (error: any) {
+              console.error(
+                '[Anointed Innovations] Payment processing error:',
+                error,
+              );
+              Alert.alert(
+                'Error',
+                error.message || 'Failed to process payment',
+              );
+            } finally {
+              setProcessing(false);
+            }
           },
           () => {
             console.log('[Anointed Innovations] Card entry cancelled');
@@ -135,7 +143,7 @@ export function SubscriptionPaywall({
   };
 
   const features = [
-    { icon: Brain, text: 'AI-Powered Soul Matches', premium: true },
+    { icon: Flame, text: 'AI-Powered Soul Matches', premium: true },
     { icon: Heart, text: 'Unlimited Likes', premium: true },
     { icon: MessageCircle, text: 'Chat with All Matches', premium: true },
     { icon: Sparkles, text: 'Advanced Compatibility Insights', premium: true },
@@ -173,7 +181,7 @@ export function SubscriptionPaywall({
 
       <ScrollView className="flex-1 -mt-4">
         <View className="px-6 py-4">
-          <Card className="mb-6 bg-gradient-to-br from-ocean-50 to-purple-50 border-purple-200">
+          <Card className="mb-6 bg-linear-to-br from-ocean-50 to-purple-50 border-purple-200">
             <CardContent className="p-4">
               <Text className="font-semibold text-slate-800 mb-3">
                 Premium Features:
@@ -210,7 +218,7 @@ export function SubscriptionPaywall({
                   onPress={() => setSelectedPlan(plan.id)}
                 >
                   <Card
-                    className={`${isSelected ? 'border-2 border-primary shadow-lg' : 'border border-slate-200'} ${isTrial ? 'bg-gradient-to-br from-purple-50 to-ocean-50' : 'bg-white'}`}
+                    className={`${isSelected ? 'border-2 border-primary shadow-lg' : 'border border-slate-200'} ${isTrial ? 'bg-linear-to-br from-purple-50 to-ocean-50' : 'bg-white'}`}
                   >
                     <CardContent className="p-4">
                       <View className="flex-row items-start justify-between mb-2">

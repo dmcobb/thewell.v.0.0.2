@@ -77,7 +77,7 @@ class SubscriptionService {
   }
 
   async processPayment(planId: string, nonce: string): Promise<PaymentResult> {
-    const response = await apiClient.post<PaymentResult>(API_ENDPOINTS.PAYMENTS.CREATE_INTENT, {
+    const response = await apiClient.post<PaymentResult>(API_ENDPOINTS.SUBSCRIPTIONS.CREATE_PAYMENT, {
       plan_id: planId,
       source_id: nonce,
     })

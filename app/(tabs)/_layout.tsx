@@ -7,6 +7,7 @@ import {
   BookOpen,
   MessageCircle,
   User,
+  Eye,
 } from 'lucide-react-native';
 
 export default function TabLayout() {
@@ -38,6 +39,13 @@ export default function TabLayout() {
         options={{
           title: 'Matches',
           tabBarIcon: ({ color, size }) => <Heart size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="likes"
+        options={{
+          title: 'Likes',
+          tabBarIcon: ({ color, size }) => <Eye size={size} color={color} />,
         }}
       />
       <Tabs.Screen
