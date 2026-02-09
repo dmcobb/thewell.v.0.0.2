@@ -92,21 +92,34 @@ export function VideoRecorder({
         setRecordingTime((prev) => {
           const newTime = prev + 1;
           if (newTime >= maxDuration) {
-            stopRecording();
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
             return maxDuration;
           }
           return newTime;
         });
       }, 1000);
 
+      console.log('[DEBUG] VideoRecorder: Starting recording...');
       const video = await cameraRef.current.recordAsync({
         maxDuration,
       });
 
-      if (video) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+
+      console.log(
+        '[DEBUG] VideoRecorder: Recording completed, video uri:',
+        video?.uri,
+      );
+      if (video?.uri) {
+        console.log('[DEBUG] VideoRecorder: Setting recordedUri to', video.uri);
         setRecordedUri(video.uri);
-        // Note: We no longer call onVideoRecorded here automatically
-        // to give the user a chance to review/upload/cancel.
+        setIsRecording(false);
       }
     } catch (error) {
       console.error('[Anointed Innovations] Error recording video:', error);
@@ -123,13 +136,14 @@ export function VideoRecorder({
     if (cameraRef.current && isRecording) {
       try {
         await cameraRef.current.stopRecording();
+        // Don't set isRecording here - let recordAsync() completion handle it
       } catch (error) {
         console.error(
           '[Anointed Innovations] Error stopping recording:',
           error,
         );
+        setIsRecording(false);
       }
-      setIsRecording(false);
 
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -282,8 +296,10 @@ export function VideoRecorder({
             <View className="flex-col gap-3">
               {/* Option 1: Upload Button */}
               <Button
-                onPress={() => onVideoRecorded?.(recordedUri)}
-                className="bg-gradient-to-r from-ocean-500 to-purple-500 py-4"
+                onPress={() => {
+                  onVideoRecorded?.(recordedUri);
+                }}
+                className="bg-linear-to-r from-ocean-500 to-purple-500"
               >
                 <View className="flex-row items-center gap-2">
                   <Upload size={18} color="white" />

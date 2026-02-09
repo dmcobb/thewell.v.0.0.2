@@ -14,12 +14,17 @@ export interface UserProfile {
   gender: string
   denomination: string
   church_name: string
+  church_attendance_frequency?: string
   occupation: string
   education_level: string
-  height_cm: number
+  height_cm?: number | null
+  smoking_status?: string
+  drinking_status?: string
   has_children: boolean
-  children_count: number
+  children_count?: number | null
+  children_ages?: string
   wants_children: boolean
+  relationship_status?: string
   profile_video_url: string | null
   profile_video_thumbnail_url: string | null
   photos: Array<{
@@ -43,12 +48,17 @@ export interface UpdateProfileData {
   location_state?: string
   denomination?: string
   church_name?: string
+  church_attendance_frequency?: string
   occupation?: string
   education_level?: string
-  height_cm?: number
+  height_cm?: number | null
+  smoking_status?: string
+  drinking_status?: string
   has_children?: boolean
-  children_count?: number
+  children_count?: number | null
+  children_ages?: string
   wants_children?: boolean
+  relationship_status?: string
   profileComplete?: boolean
 }
 
@@ -171,6 +181,7 @@ class UserService {
         error.message?.includes("Route not found") ||
         error.message?.includes("HTML instead of JSON")
       ) {
+        console.log("[Anointed Innovations] Onboarding progress endpoint not available - progress not saved")
         return { success: false, message: "Endpoint not available" }
       }
       throw error
@@ -189,8 +200,10 @@ class UserService {
         error.message?.includes("Route not found") ||
         error.message?.includes("HTML instead of JSON")
       ) {
+        console.log("[Anointed Innovations] Onboarding progress endpoint not implemented yet - starting fresh")
         return null
       }
+      console.log("[Anointed Innovations] No saved onboarding progress found")
       return null
     }
   }
@@ -204,6 +217,7 @@ class UserService {
         error.message?.includes("Route not found") ||
         error.message?.includes("HTML instead of JSON")
       ) {
+        console.log("[Anointed Innovations] Onboarding progress endpoint not available - nothing to clear")
         return { success: true, message: "Nothing to clear" }
       }
       throw error

@@ -15,21 +15,43 @@ import {
   LogOut,
   Save,
   CreditCard,
+  ChevronRight,
 } from 'lucide-react-native';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EditProfileModal } from '@/components/edit-profile-modal';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/auth-context';
 import { userService, type UserPreferences } from '@/lib/services/user.service';
-import { subscriptionService } from '@/lib/services/subscription.service';
+import {
+  subscriptionService,
+  type SubscriptionStatus,
+} from '@/lib/services/subscription.service';
+import { API_ENDPOINTS } from '@/lib/constants';
+
+interface Transaction {
+  id: number;
+  amount: number;
+  plan_type: string;
+  card_brand: string;
+  card_last_4: string;
+  created_at: string;
+  status: string;
+}
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
-  const [subscription, setSubscription] = useState<any>(null);
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(
+    null,
+  );
+  const [lastTransaction, setLastTransaction] = useState<Transaction | null>(
+    null,
+  );
+  const [editProfileModalVisible, setEditProfileModalVisible] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>({
     lookingFor: '',
     denomination: '',
@@ -42,6 +64,7 @@ export default function SettingsScreen() {
   useEffect(() => {
     loadPreferences();
     loadSubscription();
+    loadLastTransaction();
   }, []);
 
   const loadPreferences = async () => {
@@ -61,6 +84,33 @@ export default function SettingsScreen() {
       setSubscription(subStatus);
     } catch (err) {
       console.error('[Anointed Innovations] Error loading subscription:', err);
+    }
+  };
+
+  const loadLastTransaction = async () => {
+    try {
+      const AsyncStorage =
+        await import('@react-native-async-storage/async-storage');
+      const token = await AsyncStorage.default.getItem('authToken');
+      const response = await fetch(
+        `https://api.the-wellapp.com/api/v1${API_ENDPOINTS.PAYMENTS.HISTORY}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && data.data.length > 0) {
+          setLastTransaction(data.data[0]);
+        }
+      }
+    } catch (err) {
+      console.error(
+        '[Anointed Innovations] Error loading last transaction:',
+        err,
+      );
     }
   };
 
@@ -181,7 +231,7 @@ export default function SettingsScreen() {
               <Button
                 variant="outline"
                 className="w-full h-12 bg-transparent"
-                onPress={() => router.push('/start-journey')}
+                onPress={() => setEditProfileModalVisible(true)}
               >
                 <Text className="text-purple-500 font-medium">
                   Edit Profile
@@ -360,6 +410,60 @@ export default function SettingsScreen() {
             </Card>
           )}
 
+          {/* Transactions */}
+          {lastTransaction && (
+            <Card className="shadow-lg bg-white/95">
+              <CardHeader>
+                <View className="flex-row items-center gap-2">
+                  <CreditCard size={20} color="#8B5CF6" />
+                  <CardTitle>Latest Transaction</CardTitle>
+                </View>
+              </CardHeader>
+              <CardContent className="gap-3">
+                <View className="bg-gradient-to-r from-slate-50 to-purple-50 rounded-lg p-4">
+                  <View className="flex-row justify-between items-start mb-3">
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-slate-800 mb-1">
+                        {lastTransaction.plan_type}
+                      </Text>
+                      <Text className="text-xs text-slate-600">
+                        {new Date(
+                          lastTransaction.created_at,
+                        ).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </Text>
+                    </View>
+                    <Text className="text-base font-bold text-purple-600">
+                      ${lastTransaction.amount.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center gap-2">
+                    <View className="w-2 h-2 rounded-full bg-green-500" />
+                    <Text className="text-xs text-slate-600">
+                      {lastTransaction.card_brand} ••••{' '}
+                      {lastTransaction.card_last_4}
+                    </Text>
+                  </View>
+                </View>
+                <Button
+                  variant="outline"
+                  className="w-full h-12 bg-transparent border-purple-200"
+                  onPress={() => router.push('/settings/transactions')}
+                >
+                  <View className="flex-row items-center justify-between w-full px-2">
+                    <Text className="text-purple-600 font-medium">
+                      View All Transactions
+                    </Text>
+                    <ChevronRight size={18} color="#A78BFA" />
+                  </View>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Account Actions */}
           <Card className="shadow-lg bg-white/95">
             <CardHeader>
@@ -392,6 +496,16 @@ export default function SettingsScreen() {
           </Card>
         </View>
       </ScrollView>
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        visible={editProfileModalVisible}
+        onClose={() => setEditProfileModalVisible(false)}
+        onSave={() => {
+          // Optional: refresh preferences if needed
+          loadPreferences();
+        }}
+      />
     </View>
   );
 }

@@ -1,3 +1,4 @@
+// scripts/fix-square-payments.js
 const fs = require('fs');
 const path = require('path');
 
@@ -6,39 +7,38 @@ console.log('🔧 Fixing react-native-square-in-app-payments package.json...');
 const packagePath = path.join(__dirname, '../node_modules/react-native-square-in-app-payments/package.json');
 
 try {
-  // Read the package.json
   const data = fs.readFileSync(packagePath, 'utf8');
   const pkg = JSON.parse(data);
   
-  console.log('📦 Current package.json:', {
+  console.log('📦 Original package.json:', {
     main: pkg.main,
-    hasExports: !!pkg.exports,
-    exportsValue: pkg.exports
+    types: pkg.types,
+    hasExports: !!pkg.exports
   });
   
-  // FIX 1: Ensure main points to the correct file
-  if (pkg.main && pkg.main.includes('lib/module')) {
-    pkg.main = './src/index.js';
-    console.log('✅ Fixed main field');
-  }
+  // The exports field is correct but too restrictive
+  // We need to add the missing subpath OR make it more permissive
+  pkg.exports = {
+    '.': {
+      "source": "./src/index.ts",
+      "import": "./src/index.ts",
+      "require": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    './package.json': './package.json',
+    './app.plugin.js': './app.plugin.js',
+    // ADD THIS to allow direct import
+    './src/index.ts': './src/index.ts'
+  };
   
-  // FIX 2: Remove or fix the broken exports field
-  if (pkg.exports) {
-    // Option A: Remove it completely
-    delete pkg.exports;
-    console.log('✅ Removed broken exports field');
-    
-    // Option B: Or fix it if you want to keep it
-    // pkg.exports = {
-    //   ".": "./src/index.js"
-    // };
-  }
+  // Also ensure main and types are correct
+  pkg.main = './src/index.ts';
+  pkg.types = './src/index.ts';
   
-  // Write it back
   fs.writeFileSync(packagePath, JSON.stringify(pkg, null, 2));
-  console.log('🎯 Successfully fixed package.json');
+  console.log('✅ Fixed exports field to include ./src/index.ts');
   
 } catch (error) {
-  console.error('❌ Error fixing package:', error.message);
+  console.error('❌ Error:', error.message);
   process.exit(1);
 }

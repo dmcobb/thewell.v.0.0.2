@@ -93,7 +93,7 @@ export const API_ENDPOINTS = {
     CREATE_SUBSCRIPTION: "/subscriptions",
     CANCEL_SUBSCRIPTION: "/subscriptions/cancel",
     GET_PAYMENT_METHODS: "/payments/methods",
-    HISTORY: "/payments/history",
+    HISTORY: "/transactions/latest",
     WEBHOOK: "/payments/webhook",
   },
   // Ads

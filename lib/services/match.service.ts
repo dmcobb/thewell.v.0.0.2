@@ -163,13 +163,22 @@ class MatchService {
     return response.data
   }
 
-  async likeUser(userId: string): Promise<{ is_match: boolean; match_id: string | null }> {
-    const response = await apiClient.post<{ success: boolean; data: { is_match: boolean; match_id: string | null } }>(
-      API_ENDPOINTS.MATCHES.LIKE(userId),
-      {},
-    )
-    return response.data
-  }
+  // Update your matchService.likeUser() function to this:
+async likeUser(userId: string): Promise<{ 
+  success: boolean; 
+  isMatch: boolean; 
+  match_id: string | null 
+}> {
+  const response = await apiClient.post<{ 
+    success: boolean; 
+    isMatch: boolean; 
+    match_id: string | null 
+  }>(
+    API_ENDPOINTS.MATCHES.LIKE(userId),
+    {},
+  )
+  return response
+}
 
   async unlikeUser(userId: string): Promise<{ success: boolean; message: string }> {
     return apiClient.post(API_ENDPOINTS.MATCHES.UNLIKE(userId), {})

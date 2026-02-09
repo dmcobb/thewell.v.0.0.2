@@ -46,6 +46,11 @@ export default function BrowseScreen() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [hasUsedTrial, setHasUsedTrial] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [chatModal, setChatModal] = useState(false);
+  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+  const [selectedMatchName, setSelectedMatchName] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     checkSubscriptionStatus();
@@ -120,7 +125,7 @@ export default function BrowseScreen() {
     loadUsers();
   }, []);
 
-  const handleLike = async (userId: string) => {
+  const handleLike = async (userId: string, userName: string) => {
     if (likeStatus && !likeStatus.is_premium && !likeStatus.can_like) {
       setShowPaywall(true);
       return;
@@ -134,8 +139,10 @@ export default function BrowseScreen() {
         await checkSubscriptionStatus();
       }
 
-      if (result.is_match) {
-        // Optional: I can use this to show a match notification or something
+      if (result.isMatch) {
+        setSelectedMatchId(result.match_id);
+        setSelectedMatchName(userName);
+        setChatModal(true);
       }
 
       setUsers(users.filter((u) => u.id !== userId));
@@ -160,6 +167,17 @@ export default function BrowseScreen() {
     }
   };
 
+  const handleChatNow = () => {
+    if (selectedMatchId) {
+      setChatModal(false);
+      router.push(`/chat/${selectedMatchId}`);
+    }
+  };
+
+  const handleChatLater = () => {
+    setChatModal(false);
+  };
+
   const handleSubscribe = async (planId: string) => {
     try {
       if (planId === 'trial') {
@@ -167,7 +185,7 @@ export default function BrowseScreen() {
         setShowPaywall(false);
         await checkSubscriptionStatus();
       } else {
-        // Initially empty
+        console.log('[Anointed Innovations] Subscribe to plan:', planId);
       }
     } catch (err) {
       console.error('[Anointed Innovations] Error subscribing:', err);
@@ -297,129 +315,169 @@ export default function BrowseScreen() {
         )}
 
         <View className="gap-4">
-          {filteredUsers.map((user) => (
-            <Card
-              key={user.id}
-              className="overflow-hidden shadow-xl bg-white/95"
-            >
-              <View className="relative h-64">
-                {user.profile_video_url ? (
-                  <VideoPlayer
-                    videoUrl={user.profile_video_url}
-                    poster={user.profile_video_thumbnail_url || undefined}
-                    className="h-full"
-                  />
-                ) : user.photos && user.photos.length > 0 ? (
-                  <Image
-                    source={{
-                      uri:
-                        user.photos.find((p) => p.is_primary)?.photo_url ||
-                        user.photos[0].photo_url,
-                    }}
-                    className="w-full h-full"
-                    contentFit="cover"
-                  />
-                ) : (
-                  <View className="w-full h-full bg-slate-200 items-center justify-center">
-                    <Users size={64} color="#94a3b8" />
-                  </View>
-                )}
-                <View className="absolute top-3 right-3 flex-row gap-2">
-                  <Badge variant="secondary" className="bg-white/90">
-                    <View className="flex-row items-center gap-1">
-                      <Shield size={10} color="#0891B2" />
-                      <Text className="text-primary text-xs">Verified</Text>
+          {filteredUsers.map((user, index) => (
+            <View key={user.id}>
+              <Card className="overflow-hidden shadow-xl bg-white/95">
+                <View className="relative h-64">
+                  {user.profile_video_url ? (
+                    <VideoPlayer
+                      videoUrl={user.profile_video_url}
+                      poster={user.profile_video_thumbnail_url || undefined}
+                      className="h-full"
+                    />
+                  ) : user.photos && user.photos.length > 0 ? (
+                    <Image
+                      source={{
+                        uri:
+                          user.photos.find((p) => p.is_primary)?.photo_url ||
+                          user.photos[0].photo_url,
+                      }}
+                      className="w-full h-full"
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View className="w-full h-full bg-slate-200 items-center justify-center">
+                      <Users size={64} color="#94a3b8" />
                     </View>
-                  </Badge>
-                  {user.match_score && (
-                    <Badge className="bg-gradient-to-r from-primary to-primary-light">
-                      <Text className="text-white text-xs">
-                        {user.match_score}% Match
-                      </Text>
-                    </Badge>
                   )}
-                </View>
-              </View>
-
-              <CardContent className="p-4">
-                <View className="flex-row items-center justify-between mb-3">
-                  <View className="flex-1">
-                    <Text className="text-xl font-semibold text-slate-800">
-                      {user.first_name}, {calculateAge(user.date_of_birth)}
-                    </Text>
-                    {user.location_city && user.location_state && (
-                      <View className="flex-row items-center gap-1 mt-1">
-                        <MapPin size={14} color="#64748B" />
-                        <Text className="text-sm text-slate-600">
-                          {user.location_city}, {user.location_state}
-                        </Text>
+                  <View className="absolute top-3 right-3 flex-row gap-2">
+                    <Badge variant="secondary" className="bg-white/90">
+                      <View className="flex-row items-center gap-1">
+                        <Shield size={10} color="#0891B2" />
+                        <Text className="text-primary text-xs">Verified</Text>
                       </View>
+                    </Badge>
+                    {user.match_score && (
+                      <Badge className="bg-gradient-to-r from-primary to-primary-light">
+                        <Text className="text-white text-xs">
+                          {user.match_score}% Match
+                        </Text>
+                      </Badge>
                     )}
                   </View>
-                  {user.denomination && (
-                    <Badge
-                      variant="outline"
-                      className="border-purple-200 bg-purple-50"
-                    >
-                      <Text className="text-xs text-purple-500">
-                        {user.denomination}
-                      </Text>
-                    </Badge>
-                  )}
                 </View>
 
-                {user.bio && (
-                  <Text
-                    className="text-sm text-slate-600 mb-3 leading-relaxed"
-                    numberOfLines={2}
-                  >
-                    "{user.bio}"
-                  </Text>
-                )}
-
-                {user.occupation && (
-                  <View className="bg-ocean-50 p-2 rounded-lg mb-3">
-                    <Text className="text-xs text-primary font-medium">
-                      {user.occupation}
-                    </Text>
+                <CardContent className="p-4">
+                  <View className="flex-row items-center justify-between mb-3">
+                    <View className="flex-1">
+                      <Text className="text-xl font-semibold text-slate-800">
+                        {user.first_name}, {calculateAge(user.date_of_birth)}
+                      </Text>
+                      {user.location_city && user.location_state && (
+                        <View className="flex-row items-center gap-1 mt-1">
+                          <MapPin size={14} color="#64748B" />
+                          <Text className="text-sm text-slate-600">
+                            {user.location_city}, {user.location_state}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    {user.denomination && (
+                      <Badge
+                        variant="outline"
+                        className="border-purple-200 bg-purple-50"
+                      >
+                        <Text className="text-xs text-purple-500">
+                          {user.denomination}
+                        </Text>
+                      </Badge>
+                    )}
                   </View>
-                )}
 
-                <View className="flex-row gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1 h-10 bg-transparent"
-                    onPress={() => handlePass(user.id)}
-                  >
-                    <View className="flex-row items-center gap-1">
-                      <X size={16} color="#8B5CF6" />
-                      <Text className="text-purple-500 font-medium text-sm">
-                        Pass
+                  {user.bio && (
+                    <Text
+                      className="text-sm text-slate-600 mb-3 leading-relaxed"
+                      numberOfLines={2}
+                    >
+                      "{user.bio}"
+                    </Text>
+                  )}
+
+                  {user.occupation && (
+                    <View className="bg-ocean-50 p-2 rounded-lg mb-3">
+                      <Text className="text-xs text-primary font-medium">
+                        {user.occupation}
                       </Text>
                     </View>
-                  </Button>
-                  <Button
-                    className="flex-1 h-10"
-                    onPress={() => handleLike(user.id)}
-                    disabled={
-                      likeStatus
-                        ? !likeStatus.can_like && !likeStatus.is_premium
-                        : false
-                    }
-                  >
-                    <View className="flex-row items-center gap-1">
-                      <Heart size={16} color="white" />
-                      <Text className="text-white font-medium text-sm">
-                        Like
-                      </Text>
-                    </View>
-                  </Button>
-                </View>
-              </CardContent>
-            </Card>
+                  )}
+
+                  <View className="flex-row gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-10 bg-transparent"
+                      onPress={() => handlePass(user.id)}
+                    >
+                      <View className="flex-row items-center gap-1">
+                        <X size={16} color="#8B5CF6" />
+                        <Text className="text-purple-500 font-medium text-sm">
+                          Pass
+                        </Text>
+                      </View>
+                    </Button>
+                    <Button
+                      className="flex-1 h-10"
+                      onPress={() => handleLike(user.id, user.first_name)}
+                      disabled={
+                        likeStatus
+                          ? !likeStatus.can_like && !likeStatus.is_premium
+                          : false
+                      }
+                    >
+                      <View className="flex-row items-center gap-1">
+                        <Heart size={16} color="white" />
+                        <Text className="text-white font-medium text-sm">
+                          Like
+                        </Text>
+                      </View>
+                    </Button>
+                  </View>
+                </CardContent>
+              </Card>
+
+              {(index + 1) % 4 === 0 && index !== filteredUsers.length - 1 && (
+                <Card className="overflow-hidden shadow-xl bg-white/95 h-48">
+                  <CardContent className="p-4 h-full bg-gradient-to-br from-slate-900 to-slate-700 items-center justify-center">
+                    <Text className="text-white font-semibold text-lg mb-2">
+                      Discover More Matches
+                    </Text>
+                    <Text className="text-slate-300 text-xs text-center">
+                      Upgrade to premium for unlimited discovery
+                    </Text>
+                  </CardContent>
+                </Card>
+              )}
+            </View>
           ))}
         </View>
       </ScrollView>
+
+      <Modal visible={chatModal} animationType="fade" transparent>
+        <View className="flex-1 bg-black/50 items-center justify-center p-6">
+          <Card className="w-full shadow-2xl bg-white">
+            <CardContent className="p-6">
+              <Text className="text-xl font-bold text-slate-800 mb-2">
+                It's a Match!
+              </Text>
+              <Text className="text-slate-600 mb-6">
+                You matched with {selectedMatchName}! Would you like to chat now
+                or continue browsing?
+              </Text>
+              <View className="flex-row gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 bg-transparent"
+                  onPress={handleChatLater}
+                >
+                  <Text className="text-slate-600 font-medium">Chat Later</Text>
+                </Button>
+                <Button className="flex-1" onPress={handleChatNow}>
+                  <Text className="text-white font-medium">Chat Now</Text>
+                </Button>
+              </View>
+            </CardContent>
+          </Card>
+        </View>
+      </Modal>
 
       <Modal
         visible={showPaywall}

@@ -8,7 +8,7 @@ const config = getDefaultConfig(__dirname)
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === 'react-native-square-in-app-payments') {
     const resolvedPath = require.resolve(
-      'react-native-square-in-app-payments/src/index.js',
+      'react-native-square-in-app-payments/src/index.ts',
       { paths: [context.originModulePath] }
     );
     return {
@@ -23,7 +23,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 config.resolver.extraNodeModules = {
   'react-native-square-in-app-payments': path.join(
     __dirname, 
-    'node_modules/react-native-square-in-app-payments/src/index.js'
+    'node_modules/react-native-square-in-app-payments/src/index.ts'
   ),
 }
 

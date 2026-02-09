@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, ActivityIndicator, Modal } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Brain,
@@ -14,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { VideoPlayer } from '@/components/video-player';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { matchService, type AIMatchResult } from '@/lib/services/match.service';
 import {
   subscriptionService,
@@ -34,6 +35,13 @@ export default function AIMatchTab() {
   useEffect(() => {
     checkSubscriptionAndLoadMatch();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Refresh subscription status whenever tab comes into focus
+      checkSubscriptionAndLoadMatch();
+    }, []),
+  );
 
   const checkSubscriptionAndLoadMatch = async () => {
     try {
@@ -72,8 +80,8 @@ export default function AIMatchTab() {
     if (!match) return;
     try {
       const result = await matchService.likeUser(match.id);
-      if (result.is_match) {
-        // Initially blank
+      if (result?.isMatch) {
+        // Match created - optional toast/notification
       }
       // Reload to get next match
       await loadAIMatch();
@@ -97,10 +105,25 @@ export default function AIMatchTab() {
     try {
       if (planId === 'trial') {
         await subscriptionService.activateTrial();
+        // Add small delay to ensure backend has processed the trial
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Refresh subscription status after successful trial activation
+        const updatedStatus = await subscriptionService.getUserSubscription();
+        setSubscriptionStatus(updatedStatus);
         setShowPaywall(false);
-        await checkSubscriptionAndLoadMatch();
+        // Load AI match after paywall closes
+        await loadAIMatch();
       } else {
-        // Handle paid subscription (implement Square integration)
+        // For paid plans, the payment is already processed by the hook
+        // Add delay to ensure backend has processed the payment
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Just refresh subscription status and load matches
+        const updatedStatus = await subscriptionService.getUserSubscription();
+        setSubscriptionStatus(updatedStatus);
+        if (updatedStatus.is_premium) {
+          setShowPaywall(false);
+          await loadAIMatch();
+        }
       }
     } catch (error) {
       console.error('[Anointed Innovations] Error subscribing:', error);
@@ -141,7 +164,7 @@ export default function AIMatchTab() {
         presentationStyle="pageSheet"
       >
         <SubscriptionPaywall
-          onClose={() => router.back()}
+          onClose={() => setShowPaywall(false)}
           onSubscribe={handleSubscribe}
           hasUsedTrial={subscriptionStatus?.has_used_trial || false}
         />
@@ -288,6 +311,14 @@ export default function AIMatchTab() {
                   </View>
                 </Button>
               </View>
+
+              {subscriptionStatus && !subscriptionStatus.is_premium && (
+                <View className="bg-gradient-to-r from-orange-50 to-orange-100 p-3 rounded-xl border border-orange-200">
+                  <Text className="text-xs text-orange-600 text-center font-medium">
+                    5 likes remaining today
+                  </Text>
+                </View>
+              )}
             </CardContent>
           </Card>
 
