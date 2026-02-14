@@ -31,6 +31,7 @@ export function EditProfileModal({
     last_name: '',
   });
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [newPhotoUri, setNewPhotoUri] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -61,14 +62,16 @@ export function EditProfileModal({
 
   const pickPhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
     });
 
     if (!result.canceled) {
-      setSelectedPhoto(result.assets[0].uri);
+      const newUri = result.assets[0].uri;
+      setSelectedPhoto(newUri);
+      setNewPhotoUri(newUri);
     }
   };
 
@@ -87,9 +90,9 @@ export function EditProfileModal({
         last_name: profile.last_name.trim(),
       });
 
-      // Upload photo if selected
-      if (selectedPhoto && selectedPhoto.startsWith('file://')) {
-        await userService.uploadPhotos([{ uri: selectedPhoto }]);
+      // Upload and set as primary photo if a new photo was selected
+      if (newPhotoUri) {
+        await userService.uploadAndSetPrimaryPhoto({ uri: newPhotoUri });
       }
 
       Alert.alert('Success', 'Your profile has been updated');

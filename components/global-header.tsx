@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useNotification } from '@/contexts/notification-context';
 import { Badge } from '@/components/ui/badge';
 import AppIcon from '@/components/AppIcon';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 export function GlobalHeader() {
   const router = useRouter();
@@ -24,14 +24,20 @@ export function GlobalHeader() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
 
-  // Safely handle user image with fallback
-  let userImage = require('../public/placeholder-user.jpg');
+  // Memoize userImage to prevent re-render loop
+  const userImage = useMemo(() => {
+    let image = require('../public/placeholder-user.jpg');
 
-  if (user?.photos && Array.isArray(user.photos) && user.photos.length > 0) {
-    const primaryPhoto = user.photos.find((p: any) => p.is_primary);
-    userImage =
-      primaryPhoto?.photo_url || user.photos[0]?.photo_url || userImage;
-  }
+    if (user?.photos && Array.isArray(user.photos) && user.photos.length > 0) {
+      const primaryPhoto = user.photos.find((p: any) => p.is_primary);
+      const photoUrl = primaryPhoto?.photo_url || user.photos[0]?.photo_url;
+      if (photoUrl && typeof photoUrl === 'string') {
+        // The photo_url already has API_BASE_URL prepended from the backend
+        image = photoUrl;
+      }
+    }
+    return image;
+  }, [user?.photos]);
 
   const handleLogoutConfirm = async () => {
     setLogoutModalVisible(false);
@@ -77,16 +83,28 @@ export function GlobalHeader() {
             {/* User Profile Image Trigger */}
             <TouchableOpacity onPress={() => setMenuVisible(true)}>
               <View className="w-10 h-10 rounded-full border-2 border-primary-light overflow-hidden bg-slate-200">
-                <Image
-                  source={
-                    typeof userImage === 'string'
-                      ? { uri: userImage }
-                      : userImage
-                  }
-                  style={{ width: '100%', height: '100%' }}
-                  className="w-full h-full"
-                  contentFit="cover"
-                />
+                {typeof userImage === 'string' &&
+                userImage.startsWith('http') ? (
+                  <Image
+                    source={{ uri: userImage }}
+                    style={{ width: '100%', height: '100%' }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    placeholder={{ blurhash: 'L5H9@=yIyJof00yIyJof00yI' }}
+                    onError={() =>
+                      console.error(
+                        '[Anointed Innovations] Image failed to load:',
+                        userImage,
+                      )
+                    }
+                  />
+                ) : (
+                  <Image
+                    source={userImage}
+                    style={{ width: '100%', height: '100%' }}
+                    contentFit="cover"
+                  />
+                )}
               </View>
             </TouchableOpacity>
           </View>
@@ -138,7 +156,7 @@ export function GlobalHeader() {
               className="flex-row items-center p-4 border-b border-slate-50 active:bg-slate-50"
               onPress={() => {
                 setMenuVisible(false);
-                router.replace('../browse');
+                router.replace('/browse');
               }}
             >
               <Search size={20} color="#8B5CF6" />
@@ -149,7 +167,7 @@ export function GlobalHeader() {
               className="flex-row items-center p-4 border-b border-slate-50 active:bg-slate-50"
               onPress={() => {
                 setMenuVisible(false);
-                router.push('../settings');
+                router.push('/settings');
               }}
             >
               <SettingsIcon size={20} color="#64748B" />

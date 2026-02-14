@@ -18,7 +18,6 @@ export default function MessagesScreen() {
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchMatches();
@@ -37,11 +36,15 @@ export default function MessagesScreen() {
   };
 
   const handleChatPress = (matchId: string) => {
+    if (!matchId) {
+      console.error('[Anointed Innovations] No match ID available');
+      return;
+    }
     router.push(`/chat/${matchId}`);
   };
 
   const renderMatchItem = ({ item }: { item: Match }) => (
-    <TouchableOpacity onPress={() => handleChatPress(item.matched_user_id)}>
+    <TouchableOpacity onPress={() => handleChatPress(item.match_id)}>
       <Card className="shadow-lg bg-white/95 mb-3">
         <CardContent className="p-4">
           <View className="flex-row items-center gap-4">
@@ -62,11 +65,6 @@ export default function MessagesScreen() {
               <Text className="text-sm text-slate-600">
                 {item.location_city}
               </Text>
-              {item.last_message_at && (
-                <Text className="text-xs text-slate-500 mt-1">
-                  {new Date(item.last_message_at).toLocaleDateString()}
-                </Text>
-              )}
             </View>
             <View className="bg-gradient-to-r from-primary to-primary-light rounded-lg p-2">
               <MessageCircle size={20} color="white" />
@@ -121,7 +119,7 @@ export default function MessagesScreen() {
           <FlatList
             data={matches}
             renderItem={renderMatchItem}
-            keyExtractor={(item) => item.id || item.matched_user_id}
+            keyExtractor={(item) => item.match_id}
             scrollEnabled={false}
           />
         )}

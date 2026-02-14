@@ -102,7 +102,6 @@ export function VideoRecorder({
         });
       }, 1000);
 
-      console.log('[DEBUG] VideoRecorder: Starting recording...');
       const video = await cameraRef.current.recordAsync({
         maxDuration,
       });
@@ -112,12 +111,7 @@ export function VideoRecorder({
         timerRef.current = null;
       }
 
-      console.log(
-        '[DEBUG] VideoRecorder: Recording completed, video uri:',
-        video?.uri,
-      );
       if (video?.uri) {
-        console.log('[DEBUG] VideoRecorder: Setting recordedUri to', video.uri);
         setRecordedUri(video.uri);
         setIsRecording(false);
       }

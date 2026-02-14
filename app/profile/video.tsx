@@ -50,22 +50,11 @@ export default function ProfileVideoScreen() {
 
   const loadExistingVideo = async () => {
     try {
-      console.log('[DEBUG] loadExistingVideo: Starting');
-      console.log('[DEBUG] loadExistingVideo: user object:', user);
-      console.log(
-        '[DEBUG] loadExistingVideo: user?.profile_video_url:',
-        user?.profile_video_url,
-      );
-
       // Load existing video from user profile context
       if (user?.profile_video_url) {
-        console.log(
-          '[DEBUG] loadExistingVideo: Setting existing video URL:',
-          user.profile_video_url,
-        );
         setExistingVideoUrl(user.profile_video_url);
       } else {
-        console.log(
+        console.error(
           '[DEBUG] loadExistingVideo: No existing video URL found on user profile',
         );
       }
@@ -86,11 +75,8 @@ export default function ProfileVideoScreen() {
    * uri: string (Upload pressed) | null (Cancel pressed)
    */
   const handleVideoRecorded = (uri: string | null) => {
-    console.log('[DEBUG] handleVideoRecorded: Video recorded with URI:', uri);
-
     if (uri === null) {
       // User clicked 'Cancel' - restore view to original state
-      console.log('[DEBUG] handleVideoRecorded: User cancelled recording');
       setRecordedVideoUri(null);
       setUploadSuccess(false);
       loadExistingVideo();
@@ -98,7 +84,6 @@ export default function ProfileVideoScreen() {
     }
 
     // User clicked 'Upload Video Profile' in the recorder
-    console.log('[DEBUG] handleVideoRecorded: Starting upload process');
     setRecordedVideoUri(uri);
     setUploadSuccess(false);
 
@@ -109,11 +94,6 @@ export default function ProfileVideoScreen() {
   const handleUploadVideo = async (uriOverride?: string) => {
     const videoToUpload = uriOverride || recordedVideoUri;
 
-    console.log(
-      '[DEBUG] handleUploadVideo: Starting with videoToUpload:',
-      videoToUpload,
-    );
-
     if (!videoToUpload) {
       console.error('[DEBUG] handleUploadVideo: No video URI available');
       Alert.alert('Error', 'No video to upload');
@@ -121,7 +101,6 @@ export default function ProfileVideoScreen() {
     }
 
     try {
-      console.log('[DEBUG] handleUploadVideo: Setting isUploading to true');
       setIsUploading(true);
       setUploadProgress(0);
 
@@ -136,13 +115,9 @@ export default function ProfileVideoScreen() {
         });
       }, 300);
 
-      console.log(
-        '[DEBUG] handleUploadVideo: Calling mediaService.uploadProfileVideo',
-      );
       const response = await mediaService.uploadProfileVideo(
         videoToUpload,
         (progress) => {
-          console.log('[DEBUG] handleUploadVideo: Upload progress:', progress);
           setUploadProgress(progress);
         },
       );
@@ -150,16 +125,7 @@ export default function ProfileVideoScreen() {
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      console.log(
-        '[DEBUG] handleUploadVideo: Video uploaded successfully:',
-        JSON.stringify(response),
-      );
-
       // Update state with new video
-      console.log(
-        '[DEBUG] handleUploadVideo: Updating existingVideoUrl:',
-        response.data.video_url,
-      );
       setExistingVideoUrl(response.data.video_url);
       setRecordedVideoUri(null);
       setUploadSuccess(true);
@@ -188,14 +154,12 @@ export default function ProfileVideoScreen() {
         error.message || 'Failed to upload video. Please try again.',
       );
     } finally {
-      console.log('[DEBUG] handleUploadVideo: Upload completed');
       setIsUploading(false);
       setUploadProgress(0);
     }
   };
 
   const handleDeleteVideo = async () => {
-    console.log('[DEBUG] handleDeleteVideo: Starting delete confirmation');
     Alert.alert(
       'Delete Video',
       'Are you sure you want to delete your profile video?',
@@ -206,12 +170,8 @@ export default function ProfileVideoScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[DEBUG] handleDeleteVideo: User confirmed deletion');
               setIsDeleting(true);
               await mediaService.deleteProfileVideo();
-              console.log(
-                '[DEBUG] handleDeleteVideo: Video deleted successfully',
-              );
               setExistingVideoUrl(null);
               setRecordedVideoUri(null);
               Alert.alert('Success', 'Your profile video has been deleted');

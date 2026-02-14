@@ -24,7 +24,10 @@
     },
     "production": {
       "env": {
-        "APP_ENV": "production"
+        "NODE_ENV": "development",
+        "EXPO_PUBLIC_SQUARE_ENVIRONMENT": "sandbox",
+        "EXPO_PUBLIC_SQUARE_SANDBOX_LOCATION_ID": "LRSKVTACT68WP",
+        "EXPO_PUBLIC_SQUARE_SANDBOX_APPLICATION_ID": "sandbox-sq0idb-o8qQfJTQnrMerGHvEa_blA"
       },
       "autoIncrement": true
     }

@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from "../constants"
 export interface Message {
   id: string
   conversationId: string
+  receiverId: string
   senderId: string
   content: string
   type: "text" | "image" | "video"
@@ -24,6 +25,14 @@ export interface Conversation {
 }
 
 class MessageService {
+  async getOrCreateConversation(matchId: string): Promise<Conversation> {
+    const response = await apiClient.post<{ success: boolean; data: Conversation }>(
+      API_ENDPOINTS.MESSAGES.GET_CONVERSATIONS.replace('/conversations', `/conversations/${matchId}`),
+      {},
+    )
+    return response.data
+  }
+
   async getConversations(): Promise<Conversation[]> {
     return apiClient.get<Conversation[]>(API_ENDPOINTS.MESSAGES.GET_CONVERSATIONS)
   }

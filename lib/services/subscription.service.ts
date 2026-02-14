@@ -46,6 +46,19 @@ export interface PaymentResult {
   expires_at?: string
 }
 
+export interface SquareCardDetails {
+  nonce: string;
+  card: {
+    brand: string;
+    lastFourDigits: string;
+    expirationMonth?: number;
+    expirationYear?: number;
+    postalCode?: string;  // Make sure this is defined
+    prepaidType?: string;
+    type?: string;
+  };
+}
+
 class SubscriptionService {
   async getPlans(): Promise<SubscriptionPlan[]> {
     const response = await apiClient.get<{ success: boolean; data: SubscriptionPlan[] }>(
@@ -76,11 +89,27 @@ class SubscriptionService {
     return apiClient.post(API_ENDPOINTS.SUBSCRIPTIONS.INCREMENT_DAILY_LIKES, {})
   }
 
-  async processPayment(planId: string, nonce: string): Promise<PaymentResult> {
+  async processPayment(planId: string, nonce: string, postalCode?: string): Promise<PaymentResult> {
+    console.log("[Anointed Innovations] 🔥🔥🔥 SUBSCRIPTION-SERVICE-2026-02-12 🔥🔥🔥", { 
+    planId, 
+    nonceLength: nonce?.length || 0,
+    noncePrefix: nonce?.substring(0, 10),
+    postalCode
+  });
+    console.log("[Anointed Innovations] processPayment: Sending nonce to backend", { planId, nonceLength: nonce?.length || 0 })
+    
+    if (!nonce) {
+      throw new Error("Payment nonce is required")
+    }
+
     const response = await apiClient.post<PaymentResult>(API_ENDPOINTS.SUBSCRIPTIONS.CREATE_PAYMENT, {
       plan_id: planId,
-      nonce: nonce,
+      source_id: nonce,
+      postal_code: postalCode
     })
+    
+    console.log("[Anointed Innovations] processPayment: Response received", response)
+    console.log("[Anointed Innovations] 🔥🔥🔥 SUBSCRIPTION-SERVICE-RESPONSE-2026-02-12 🔥🔥🔥", response)
     return response
   }
 
@@ -93,6 +122,13 @@ class SubscriptionService {
 
   async cancelSubscription(): Promise<{ success: boolean; message: string }> {
     return apiClient.post(API_ENDPOINTS.PAYMENTS.CANCEL_SUBSCRIPTION, {})
+  }
+
+  async getLatestTransaction(): Promise<any> {
+    const response = await apiClient.get<{ success: boolean; data: any }>(
+      API_ENDPOINTS.TRANSACTIONS.LATEST,
+    )
+    return response.data
   }
 }
 

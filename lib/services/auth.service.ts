@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { apiClient } from "../api-client"
-import { API_ENDPOINTS } from "../constants"
+import { apiClient } from "@/lib/api-client"
+import { API_ENDPOINTS } from "@/lib/constants"
 
 export interface LoginCredentials {
   email: string
@@ -132,14 +132,15 @@ class AuthService {
   async getCurrentUser() {
     try {
       const response = await apiClient.get<{ success: boolean; data: any }>(API_ENDPOINTS.USERS.PROFILE)
-
-      // Transform backend response to frontend format
+      // Keep the full user data with photos included
       const user = response.data
       const transformedUser = {
         id: user.id,
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
+        first_name: user.first_name,
+        last_name: user.last_name,
         profileComplete: user.profile_complete ?? false,
         emailVerified: user.is_verified ?? false,
         dateOfBirth: user.date_of_birth,
@@ -147,8 +148,8 @@ class AuthService {
         bio: user.bio,
         locationCity: user.location_city,
         locationState: user.location_state,
+        photos: user.photos || [],
       }
-
 
       // Update AsyncStorage with fresh data
       await AsyncStorage.setItem("user", JSON.stringify(transformedUser))
@@ -214,10 +215,8 @@ class AuthService {
 
   async syncUserFromBackend(): Promise<AuthResponse["user"] | null> {
     try {
-
       const { userService } = await import("./user.service")
       const userProfile = await userService.getCurrentUser()
-
 
       const frontendUser = this.transformUserProfile(userProfile)
 
@@ -230,7 +229,6 @@ class AuthService {
   }
 
   private transformUserProfile(backendUser: any): AuthResponse["user"] {
-
     const profileComplete = backendUser.profile_complete === true || !!(backendUser.date_of_birth && backendUser.gender)
 
     return {
@@ -238,6 +236,8 @@ class AuthService {
       email: backendUser.email,
       firstName: backendUser.first_name,
       lastName: backendUser.last_name,
+      first_name: backendUser.first_name,
+      last_name: backendUser.last_name,
       profileComplete,
       emailVerified: backendUser.is_verified,
       dateOfBirth: backendUser.date_of_birth,
@@ -245,7 +245,8 @@ class AuthService {
       bio: backendUser.bio,
       locationCity: backendUser.location_city,
       locationState: backendUser.location_state,
-    }
+      photos: backendUser.photos || [],
+    } as any
   }
 }
 

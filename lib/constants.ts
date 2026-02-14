@@ -47,16 +47,17 @@ export const API_ENDPOINTS = {
   },
   // Messages
   MESSAGES: {
-    GET_CONVERSATIONS: "/messages/conversations",
-    GET_MESSAGES: (conversationId: string) => `/messages/${conversationId}`,
-    SEND_MESSAGE: (conversationId: string) => `/messages/${conversationId}`,
-    SEND_MEDIA: (conversationId: string) => `/messages/${conversationId}/media`,
-    MARK_READ: (conversationId: string) => `/messages/${conversationId}/read`,
+    GET_CONVERSATIONS: "/messages/conversations/",
+    GET_MESSAGES: (conversationId: string) => `/messages/conversations/${conversationId}`,
+    SEND_MESSAGE: (conversationId: string) => `/messages/conversations/${conversationId}`,
+    SEND_MEDIA: (conversationId: string) => `/messages/conversations/${conversationId}/media`,
+    MARK_READ: (conversationId: string) => `/messages/conversations/${conversationId}/read`,
     DELETE_MESSAGE: (messageId: string) => `/messages/${messageId}`,
   },
   // Media
   MEDIA: {
     UPLOAD: "/media/upload",
+    UPLOAD_VIDEO: "/media/video/profile",
     DELETE: (id: string) => `/media/${id}`,
   },
   // Prayers
@@ -93,8 +94,14 @@ export const API_ENDPOINTS = {
     CREATE_SUBSCRIPTION: "/subscriptions",
     CANCEL_SUBSCRIPTION: "/subscriptions/cancel",
     GET_PAYMENT_METHODS: "/payments/methods",
-    HISTORY: "/transactions/latest",
+    HISTORY: "/payments/history",
     WEBHOOK: "/payments/webhook",
+  },
+  // Transactions
+  TRANSACTIONS: {
+    LATEST: "/transactions/latest",
+    ALL: "/transactions",
+    GET_BY_ID: (id: string) => `/transactions/${id}`,
   },
   // Ads
   ADS: {

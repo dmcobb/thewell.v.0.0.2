@@ -8,6 +8,7 @@ class SocketService {
 
   async connect(): Promise<void> {
     if (this.socket?.connected) {
+      console.log("[Anointed Innovations] Socket already connected")
       return
     }
 
@@ -21,15 +22,15 @@ class SocketService {
 
       this.socket = io(SOCKET_URL, {
         auth: { token },
-        transports: ['polling'], // CHANGE TO POLLING ONLY
+        transports: ["websocket"],
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         reconnectionAttempts: 5,
-        upgrade: false, // ADD THIS
       })
+
       this.socket.on("connect", () => {
-        // Socketed connected
+        console.log("[Anointed Innovations] Socket connected:", this.socket?.id)
       })
 
       this.socket.on("disconnect", (reason) => {
@@ -58,6 +59,7 @@ class SocketService {
       this.socket.disconnect()
       this.socket = null
       this.listeners.clear()
+      console.log("[Anointed Innovations] Socket disconnected")
     }
   }
 
@@ -119,6 +121,10 @@ class SocketService {
 
   sendMessage(conversationId: string, message: string): void {
     this.emit("send_message", { conversationId, message })
+  }
+
+  onJoinedConversation(callback: (data: any) => void): void {
+    this.on("joined_conversation", callback)
   }
 
   onNewMessage(callback: (message: any) => void): void {

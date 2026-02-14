@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, ActivityIndicator, Modal } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Brain,

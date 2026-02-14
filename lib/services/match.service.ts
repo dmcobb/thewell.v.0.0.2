@@ -41,46 +41,52 @@ export interface LikedUser {
 }
 
 export interface Match {
-  id: string
+  match_id: string
+  user_id: string
   matched_user_id: string
   first_name: string
-  last_name: string
-  bio: string
-  location_city: string
-  primary_photo: string | null
-  profile_video_thumbnail_url: string | null
-  conversation_id: string
-  last_message_at: string
-  match_score: number
-  matched_at: string
-}
-
-export interface MatchDetails {
-  id: string
-  matched_user_id: string
-  first_name: string
-  last_name: string
-  bio: string
-  location_city: string
-  location_state: string
-  date_of_birth: string
-  gender: string
-  denomination: string
-  church_name: string
-  occupation: string
-  education_level: string
-  height_cm: number
-  has_children: boolean
-  children_count: number
-  wants_children: boolean
-  profile_video_url: string | null
-  profile_video_thumbnail_url: string | null
-  photos: Array<{
+  last_name?: string
+  bio?: string
+  location_city?: string
+  location_state?: string
+  date_of_birth?: string
+  gender?: string
+  denomination?: string
+  profile_video_url?: string | null
+  profile_video_thumbnail_url?: string | null
+  primary_photo?: string | null
+  photos?: Array<{
     id: string
     photo_url: string
     is_primary: boolean
   }> | null
-  match_score: number
+  match_score?: number
+  matched_at?: string
+}
+
+export interface MatchDetails {
+  match_id: string
+  user_id: string
+  first_name: string
+  last_name?: string
+  bio?: string
+  location_city?: string
+  location_state?: string
+  date_of_birth?: string
+  gender?: string
+  denomination?: string
+  occupation?: string
+  education_level?: string
+  height_cm?: number
+  profile_video_url?: string | null
+  profile_video_thumbnail_url?: string | null
+  photos?: Array<{
+    id: string
+    photo_url: string
+    is_primary: boolean
+  }> | null
+  match_score?: number
+  matched_at?: string
 }
 
 export interface CompatibilityInsights {
@@ -163,22 +169,13 @@ class MatchService {
     return response.data
   }
 
-  // Update your matchService.likeUser() function to this:
-async likeUser(userId: string): Promise<{ 
-  success: boolean; 
-  isMatch: boolean; 
-  match_id: string | null 
-}> {
-  const response = await apiClient.post<{ 
-    success: boolean; 
-    isMatch: boolean; 
-    match_id: string | null 
-  }>(
-    API_ENDPOINTS.MATCHES.LIKE(userId),
-    {},
-  )
-  return response
-}
+  async likeUser(userId: string): Promise<{ success: boolean; isMatch: boolean }> {
+    const response = await apiClient.post<{ success: boolean; isMatch: boolean }>(
+      API_ENDPOINTS.MATCHES.LIKE(userId),
+      {},
+    )
+    return response as { success: boolean; isMatch: boolean }
+  }
 
   async unlikeUser(userId: string): Promise<{ success: boolean; message: string }> {
     return apiClient.post(API_ENDPOINTS.MATCHES.UNLIKE(userId), {})

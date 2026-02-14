@@ -1,8 +1,32 @@
-// use-square-payments.ts
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Platform } from 'react-native'
 import { SQIPCore, SQIPCardEntry } from 'react-native-square-in-app-payments'
 import { getSquareConfig } from '@/lib/config/square'
+
+interface SquareCardDetails {
+  nonce: string;
+  card: {
+    brand: string;
+    lastFourDigits: string;
+    expirationMonth?: number;
+    expirationYear?: number;
+    postalCode?: string;
+    prepaidType?: string
+    type?: string
+  };
+  token?: string
+}
+
+interface SquareErrorInfo {
+  code: string;
+  message: string;
+  debugCode?: string;
+  debugMessage?: string;
+}
+
+interface CardEntryConfig {
+  collectPostalCode?: boolean;
+}
 
 export function useSquarePayments() {
   const [isInitialized, setIsInitialized] = useState(false)
@@ -18,10 +42,9 @@ export function useSquarePayments() {
 
       await SQIPCore.setSquareApplicationId(squareConfig.applicationId)
 
-      // Set iOS theme for The Well App branding
       if (Platform.OS === 'ios') {
         await SQIPCardEntry.setIOSCardEntryTheme({
-          saveButtonTitle: 'Pay Now',
+          saveButtonTitle: 'Continue',
           saveButtonFont: {
             size: 18,
           },
@@ -43,7 +66,6 @@ export function useSquarePayments() {
 
       setIsInitialized(true)
       setError(null)
-      console.log('[Anointed Innovations] Square Mobile Payments SDK initialized')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to initialize Square payments'
       setError(errorMessage)
@@ -51,10 +73,10 @@ export function useSquarePayments() {
     }
   }, [])
 
+  // FOR SUBSCRIPTIONS: Use startCardEntryFlow with 'Store' (default behavior)
   const startCardEntry = useCallback(
     async (
-      planData: { name: string; price_total: number; duration_months: number },
-      onCardNonceRequestSuccess: (cardDetails: any) => void,
+      onCardNonceRequestSuccess: (cardDetails: SquareCardDetails) => void,
       onCardEntryCancel: () => void,
     ): Promise<void> => {
       try {
@@ -62,67 +84,54 @@ export function useSquarePayments() {
           throw new Error('Square payments not initialized')
         }
 
-        console.log('[Anointed Innovations] Starting card entry flow with plan:', planData)
-
-        // Convert total price to cents for Square
-        const amountInCents = Math.round(planData.price_total * 100)
-
-        const cardEntryConfig = {
-          collectPostalCode: false,
-          amount: amountInCents,
-          currencyCode: 'USD' as const,
-          buyerAction: 'Charge' as const,
+        const cardEntryConfig: CardEntryConfig = {
+          collectPostalCode: true, // Required for US/Canada/UK
         }
 
-        // Wrap the success callback to close the card entry
-        const wrappedSuccessCallback = async (cardDetails: any) => {
-          console.log('[Anointed Innovations] Card nonce received, closing card entry')
-          
-          try {
-            // IMPORTANT: Close the card entry modal FIRST
-            await SQIPCardEntry.completeCardEntry(() => {
-              console.log('[Anointed Innovations] Card entry closed successfully')
-            })
-            
-            // Now call the original success callback
-            onCardNonceRequestSuccess(cardDetails)
-          } catch (closeError) {
-            console.error('[Anointed Innovations] Error closing card entry:', closeError)
-            // Still call success even if close fails
-            onCardNonceRequestSuccess(cardDetails)
-          }
-        }
+        console.log('[Anointed Innovations] Starting card entry for subscription (card on file)')
 
-        // Wrap the cancel callback
-        const wrappedCancelCallback = async () => {
-          console.log('[Anointed Innovations] Card entry cancelled by user')
-          try {
-            await SQIPCardEntry.completeCardEntry(() => {
-              console.log('[Anointed Innovations] Card entry closed after cancel')
-            })
-          } catch (closeError) {
-            console.error('[Anointed Innovations] Error closing card entry after cancel:', closeError)
-          } finally {
+        // Use standard card entry flow for storing cards
+        await (SQIPCardEntry as any).startCardEntryFlow(
+          cardEntryConfig,
+          async (cardDetails: SquareCardDetails) => {
+            try {
+              console.log('[Anointed Innovations] Card nonce received:', {
+                nonce: cardDetails.nonce?.substring(0, 20) + '...',
+                card: cardDetails.card
+              })
+              
+              if (!cardDetails.nonce) {
+                throw new Error('No nonce returned from card entry')
+              }
+              
+              // Pass the card details to create a customer card
+              onCardNonceRequestSuccess(cardDetails)
+              
+              // Close the card entry form
+              await SQIPCardEntry.completeCardEntry(() => {
+                console.log('[Anointed Innovations] Card entry closed successfully')
+              })
+            } catch (error) {
+              console.error('[Anointed Innovations] Error processing card:', error)
+              const errorMessage = error instanceof Error ? error.message : 'Failed to process card'
+              await SQIPCardEntry.showCardNonceProcessingError(errorMessage)
+            }
+          },
+          async () => {
+            console.warn('[Anointed Innovations] Card entry cancelled by user')
             onCardEntryCancel()
           }
-        }
-
-        // Start the card entry flow
-        SQIPCardEntry.startCardEntryFlow(
-          cardEntryConfig,
-          wrappedSuccessCallback,
-          wrappedCancelCallback
         )
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to start card entry'
         setError(errorMessage)
         console.error('[Anointed Innovations] Card entry error:', err)
+        onCardEntryCancel()
       }
     },
     [isInitialized],
   )
 
-  // Add a method to manually close card entry if needed
   const closeCardEntry = useCallback(async () => {
     try {
       await SQIPCardEntry.completeCardEntry(() => {

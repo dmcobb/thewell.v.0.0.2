@@ -47,7 +47,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isVideoProfile = segments[0] === 'profile' && segments[1] === 'video';
     const inBrowse = segments[0] === 'browse';
     const inSettings = segments[0] === 'settings';
-    const inAllowedScreens = inTabs || isVideoProfile || inBrowse || inSettings;
+    const inChat = segments[0] === 'chat';
+    const inAllowedScreens =
+      inTabs || isVideoProfile || inBrowse || inSettings || inChat;
 
     if (!user && !inAuthGroup) {
       // Not authenticated and not in auth screens - redirect to splash
@@ -73,7 +75,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isAuth = await authService.isAuthenticated();
 
       if (isAuth) {
-        const currentUser = await authService.getCurrentUser();
+        const response = await authService.getCurrentUser();
+        const currentUser = response.data || response;
         setUser(currentUser);
 
         if (!currentUser.profileComplete) {
@@ -155,8 +158,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
+      const response = await authService.getCurrentUser();
+      setUser(response.data || response);
     } catch (error) {
       console.error('[Anointed Innovations] Error refreshing user:', error);
     }

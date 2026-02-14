@@ -127,6 +127,8 @@ class ApiClient {
       const token = await this.getAuthToken()
       if (token) {
         requestHeaders["Authorization"] = `Bearer ${token}`
+      } else {
+        console.warn("[Anointed Innovations] No auth token found for authenticated request")
       }
     }
 
@@ -234,34 +236,34 @@ class ApiClient {
   }
 
   async uploadFile<T>(endpoint: string, file: any, options?: RequestOptions): Promise<T> {
-    const token = await this.getAuthToken()
-    const formData = new FormData()
-    formData.append("file", file)
+  const token = await this.getAuthToken();
+  const formData = new FormData();
 
-    const requestHeaders: Record<string, string> = {}
-    if (token) {
-      requestHeaders["Authorization"] = `Bearer ${token}`
-    }
+  // FIX 1: Use "photos" to match your backend route: uploadPhotos.array("photos", 5)
+  // FIX 2: Map properties from the ImagePickerAsset object
+  formData.append("photos", {
+    uri: file.uri,
+    name: file.fileName || 'upload.png', // asset.fileName from docs
+    type: file.mimeType || 'image/png',  // asset.mimeType from docs
+  } as any);
 
-    try {
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        method: "POST",
-        headers: requestHeaders,
-        body: formData,
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || "Upload failed")
-      }
-
-      return data
-    } catch (error) {
-      console.error("[Anointed Innovations] File upload error:", error)
-      throw error
-    }
+  const requestHeaders: Record<string, string> = {};
+  if (token) {
+    requestHeaders["Authorization"] = `Bearer ${token}`;
   }
+
+  // IMPORTANT: Do NOT set Content-Type manually. 
+  // Fetch will automatically set it with the correct "boundary".
+  const response = await fetch(`${this.baseURL}${endpoint}`, {
+    method: "POST",
+    headers: requestHeaders,
+    body: formData,
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Upload failed");
+  return data;
+}
 }
 
 export const apiClient = new ApiClient(API_BASE_URL)

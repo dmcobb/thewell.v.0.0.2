@@ -2,8 +2,8 @@ import { Stack, usePathname, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import '../global.css';
-import { AuthProvider } from '@/contexts/auth-context';
-import { NotificationProvider } from '@/contexts/notification-context';
+import { AuthProvider } from '../contexts/auth-context';
+import { NotificationProvider } from '../contexts/notification-context';
 import { NotificationContainer } from '@/components/notification-container';
 import { GlobalHeader } from '@/components/global-header';
 import { View } from 'react-native';
@@ -37,6 +37,7 @@ function RootLayoutContent() {
         <Stack.Screen name="settings" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="settings/transactions" />
+        <Stack.Screen name="chat/[matchId]" />
       </Stack>
     </View>
   );

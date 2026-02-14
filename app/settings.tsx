@@ -28,7 +28,6 @@ import {
   subscriptionService,
   type SubscriptionStatus,
 } from '@/lib/services/subscription.service';
-import { API_ENDPOINTS } from '@/lib/constants';
 
 interface Transaction {
   id: number;
@@ -89,22 +88,9 @@ export default function SettingsScreen() {
 
   const loadLastTransaction = async () => {
     try {
-      const AsyncStorage =
-        await import('@react-native-async-storage/async-storage');
-      const token = await AsyncStorage.default.getItem('authToken');
-      const response = await fetch(
-        `https://api.the-wellapp.com/api/v1${API_ENDPOINTS.PAYMENTS.HISTORY}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data && data.data.length > 0) {
-          setLastTransaction(data.data[0]);
-        }
+      const transaction = await subscriptionService.getLatestTransaction();
+      if (transaction) {
+        setLastTransaction(transaction);
       }
     } catch (err) {
       console.error(
@@ -195,7 +181,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gradient-to-b from-ocean-100 via-ocean-50 to-ocean-100">
+    <View className="flex-1 bg-linear-to-b from-ocean-100 via-ocean-50 to-ocean-100">
       <LinearGradient
         colors={['#0891B2', '#0284C7', '#8B5CF6', '#0369A1']}
         start={{ x: 0, y: 0 }}
@@ -420,31 +406,36 @@ export default function SettingsScreen() {
                 </View>
               </CardHeader>
               <CardContent className="gap-3">
-                <View className="bg-gradient-to-r from-slate-50 to-purple-50 rounded-lg p-4">
+                <View className="bg-linear-to-r from-slate-50 to-purple-50 rounded-lg p-4">
                   <View className="flex-row justify-between items-start mb-3">
                     <View className="flex-1">
                       <Text className="text-sm font-semibold text-slate-800 mb-1">
-                        {lastTransaction.plan_type}
+                        {lastTransaction.plan_type || 'Transaction'}
                       </Text>
                       <Text className="text-xs text-slate-600">
-                        {new Date(
-                          lastTransaction.created_at,
-                        ).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
+                        {lastTransaction.created_at
+                          ? new Date(
+                              lastTransaction.created_at,
+                            ).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })
+                          : 'Date unavailable'}
                       </Text>
                     </View>
                     <Text className="text-base font-bold text-purple-600">
-                      ${lastTransaction.amount.toFixed(2)}
+                      $
+                      {lastTransaction.amount
+                        ? Number(lastTransaction.amount).toFixed(2)
+                        : '0.00'}
                     </Text>
                   </View>
                   <View className="flex-row items-center gap-2">
                     <View className="w-2 h-2 rounded-full bg-green-500" />
                     <Text className="text-xs text-slate-600">
-                      {lastTransaction.card_brand} ••••{' '}
-                      {lastTransaction.card_last_4}
+                      {lastTransaction.card_brand || 'Card'} ••••{' '}
+                      {lastTransaction.card_last_4 || '••••'}
                     </Text>
                   </View>
                 </View>
@@ -502,7 +493,6 @@ export default function SettingsScreen() {
         visible={editProfileModalVisible}
         onClose={() => setEditProfileModalVisible(false)}
         onSave={() => {
-          // Optional: refresh preferences if needed
           loadPreferences();
         }}
       />

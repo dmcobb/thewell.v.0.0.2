@@ -25,6 +25,20 @@ interface SubscriptionPaywallProps {
   hasUsedTrial: boolean;
 }
 
+interface SquareCardDetails {
+  nonce: string;
+  card: {
+    brand: string;
+    lastFourDigits: string;
+    expirationMonth?: number;
+    expirationYear?: number;
+    postalCode?: string;
+    prepaidType?: string;
+    type?: string;
+  };
+  token?: string;
+}
+
 export function SubscriptionPaywall({
   onClose,
   onSubscribe,
@@ -78,49 +92,50 @@ export function SubscriptionPaywall({
         const result = await subscriptionService.activateTrial();
         Alert.alert('Success', result.message);
         onSubscribe(selectedPlan);
+        onClose();
       } else {
         const planData = plans.find((p) => p.id === selectedPlan);
         if (!planData) {
           throw new Error('Plan not found');
         }
 
-        // Start Square card entry flow with plan data
+        // For paid subscriptions, start card entry to get a nonce for card-on-file
         startCardEntry(
-          planData,
-          async (cardDetails: any) => {
-            console.log(
-              '[Anointed Innovations] Card nonce received (modal should be closed):',
-              cardDetails.nonce,
-            );
+          async (cardDetails: SquareCardDetails) => {
+            const postalCode = cardDetails.card?.postalCode;
 
             try {
-              // Process payment through backend
+              console.log(
+                '[Anointed Innovations] Processing subscription with nonce:',
+                cardDetails.nonce?.substring(0, 20) + '...',
+                postalCode,
+              );
+
+              // Process payment through backend - this will create a customer and card on file
               const result = await subscriptionService.processPayment(
                 selectedPlan,
-                cardDetails.nonce,
+                cardDetails.nonce, // This is a card-on-file nonce
+                cardDetails.card?.postalCode,
               );
 
               if (result.success) {
-                Alert.alert(
-                  'Success',
-                  'Payment processed successfully! Enjoy your subscription.',
-                );
+                Alert.alert('Success', 'Subscription activated successfully!');
                 onSubscribe(selectedPlan);
                 onClose();
               } else {
                 Alert.alert(
                   'Error',
-                  result.message || 'Payment processing failed',
+                  result.message || 'Subscription activation failed',
                 );
               }
             } catch (error: any) {
               console.error(
-                '[Anointed Innovations] Payment processing error:',
+                '[Anointed Innovations] Subscription processing error:',
                 error,
               );
               Alert.alert(
                 'Error',
-                error.message || 'Failed to process payment',
+                error.message || 'Failed to activate subscription',
               );
             } finally {
               setProcessing(false);
@@ -268,7 +283,7 @@ export function SubscriptionPaywall({
           </View>
 
           <Button
-            disabled={!selectedPlan || loading || processing || !isInitialized}
+            disabled={!selectedPlan}
             onPress={handleSubscribe}
             className="h-12 mb-4"
           >

@@ -102,6 +102,11 @@ export interface OnboardingProgress {
 class UserService {
   async getCurrentUser(): Promise<UserProfile> {
     const response = await apiClient.get<{ success: boolean; data: UserProfile }>(API_ENDPOINTS.USERS.PROFILE)
+
+    // Pull user from AsyncStorage
+    if (response.success && response.data) {
+      await AsyncStorage.setItem("user", JSON.stringify(response.data))
+    }
     return response.data
   }
 
@@ -124,12 +129,51 @@ class UserService {
   }
 
   async uploadPhotos(files: any[]): Promise<Array<{ id: string; photo_url: string; is_primary: boolean }>> {
-    const response = await apiClient.uploadFile<{
+    const formData = new FormData()
+    files.forEach((file) => {
+      formData.append("photos", {
+        uri: file.uri,
+        type: 'image/jpeg',
+        name: file.uri.split('/').pop() || 'photo.jpg',
+      } as any)
+    })
+
+    const response = await apiClient.post<{
       success: boolean
       data: Array<{ id: string; photo_url: string; is_primary: boolean }>
-    }>(API_ENDPOINTS.USERS.UPLOAD_PHOTOS, files)
+    }>(API_ENDPOINTS.USERS.UPLOAD_PHOTOS, formData)
     return response.data
   }
+
+  async uploadProfileVideo(videoFile: { uri: string; type: string; name: string }): Promise<{ video_url: string; thumbnail_url: string; duration: number }> {
+    const formData = new FormData()
+    formData.append("video", {
+      uri: videoFile.uri,
+      type: videoFile.type,
+      name: videoFile.name,
+    } as any)
+
+    const response = await apiClient.post<{
+      success: boolean
+      data: { video_url: string; thumbnail_url: string; duration: number }
+    }>(API_ENDPOINTS.MEDIA.UPLOAD_VIDEO, formData)
+    return response.data
+  }
+
+  async uploadAndSetPrimaryPhoto(file: any) {
+  // Pass the full asset object to our fixed uploadFile method
+  const response = await apiClient.uploadFile<{
+    success: boolean;
+    data: Array<{ id: string; photo_url: string; is_primary: boolean }>;
+  }>(API_ENDPOINTS.USERS.UPLOAD_PHOTOS, file);
+
+  if (response.success && response.data.length > 0) {
+    const photoId = response.data[0].id;
+    await this.setPrimaryPhoto(photoId);
+    return response.data[0];
+  }
+  throw new Error("Failed to upload photo");
+}
 
   async deletePhoto(photoId: string): Promise<{ success: boolean; message: string }> {
     return apiClient.delete(API_ENDPOINTS.USERS.DELETE_PHOTO(photoId))
