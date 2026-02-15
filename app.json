@@ -70,7 +70,8 @@
             "newArchEnabled": true
           }
         }
-      ]
+      ],
+      "./plugins/with-fix-square-frameworks.js"
     ],
     "experiments": {
       "typedRoutes": true
