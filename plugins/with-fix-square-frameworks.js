@@ -1,41 +1,41 @@
-const { withXcodeProject } = require('@expo/config-plugins');
+const { withDangerousMod } = require('@expo/config-plugins');
+const fs = require('fs');
+const path = require('path');
 
 module.exports = (config) => {
-  return withXcodeProject(config, (config) => {
-    const xcodeProject = config.modResults;
-    
-    // This script is injected into Xcode and runs on the EAS build machine
-    const shellScript = `
-      set -e
-      echo "🚀 Starting Square SDK Deep Clean..."
+  return withDangerousMod(config, [
+    'ios',
+    async (config) => {
+      const podfilePath = path.join(config.modRequest.projectRoot, 'ios', 'Podfile');
+      let podfileContent = fs.readFileSync(podfilePath, 'utf8');
 
-      # 1. Path to the actual app bundle being built
-      APP_PATH="$CODESIGNING_FOLDER_PATH"
-      echo "Checking bundle at: $APP_PATH"
+      // This Ruby script is injected into your Podfile's post_install block.
+      // It physically deletes the illegal files from the Pods folder after download.
+      const postInstallCode = `
+    installer.pods_project.targets.each do |target|
+      if target.name.include?('SquareInAppPaymentsSDK') || target.name.include?('SquareBuyerVerificationSDK')
+        puts "Cleaning Square SDK files from Pod: #{target.name}"
+        # Delete the 'setup' file that causes the signature error
+        system("find \\"\#{installer.sandbox.root}\\" -name 'setup' -delete")
+        # Delete the nested 'Frameworks' folder that causes the bundle error
+        system("find \\"\#{installer.sandbox.root}\\" -name 'Frameworks' -type d -exec rm -rf {} +")
+      end
+    end
+`;
 
-      # 2. Find and destroy disallowed 'Frameworks' folders inside other frameworks
-      # Apple Error: "contains disallowed file 'Frameworks'"
-      find "$APP_PATH/Frameworks" -name "Frameworks" -type d -prune -exec rm -rf {} + || true
-
-      # 3. Find and destroy 'setup' files
-      # Apple Error: "Invalid Signature. Code object is not signed at all... /setup"
-      find "$APP_PATH/Frameworks" -name "setup" -type f -delete || true
-
-      echo "✅ Deep clean complete. Disallowed files removed."
-    `;
-
-    xcodeProject.addBuildPhase(
-      [],
-      'PBXShellScriptBuildPhase',
-      'Fix Square SDK for App Store',
-      null,
-      {
-        shellPath: '/bin/sh',
-        shellScript: shellScript,
-        runOnlyForDeploymentPostprocessing: '1' // CRITICAL: This makes it run right before signing
+      if (podfileContent.includes('post_install do |installer|')) {
+        // Injects our fix at the top of your existing post_install block
+        podfileContent = podfileContent.replace(
+          'post_install do |installer|',
+          `post_install do |installer|${postInstallCode}`
+        );
+      } else {
+        podfileContent += `\npost_install do |installer|\n${postInstallCode}\nend\n`;
       }
-    );
 
-    return config;
-  });
+      fs.writeFileSync(podfilePath, podfileContent);
+      console.log('✅ Square SDK fix injected into Podfile');
+      return config;
+    },
+  ]);
 };
