@@ -8,51 +8,63 @@ module.exports = (config) => {
     'ios',
     async (config) => {
       const podfilePath = path.join(config.modRequest.projectRoot, 'ios', 'Podfile');
-      
-      // Only proceed if Podfile exists
-      if (!fs.existsSync(podfilePath)) {
-        console.log('⚠️ Podfile not found, skipping plugin');
-        return config;
-      }
-      
       let podfileContent = fs.readFileSync(podfilePath, 'utf8');
 
-      // Check if our fix is already injected
-      if (podfileContent.includes('# Square SDK rpath fix')) {
-        console.log('✅ Square SDK rpath fix already present in Podfile');
-        return config;
-      }
-
-      // Simple fix that ONLY adds rpath settings
-      const rpathFixCode = `
-    # Add rpath for CorePaymentCard
+      // This Ruby script is injected into your Podfile's post_install block.
+      // It deletes illegal files AND adds rpath for CorePaymentCard
+      const postInstallCode = `
     installer.pods_project.targets.each do |target|
-      if target.name.include?('SquareInAppPaymentsSDK') || target.name.include?('SquareBuyerVerificationSDK') || target.name == 'CorePaymentCard'
-        puts "🔧 Fixing rpath for \#{target.name}..."
+      if target.name.include?('SquareInAppPaymentsSDK') || target.name.include?('SquareBuyerVerificationSDK')
+        puts "Cleaning Square SDK files from Pod: #{target.name}"
+        # Delete the 'setup' file that causes the signature error
+        system("find \\"\#{installer.sandbox.root}\\" -name 'setup' -delete")
+        # Delete the nested 'Frameworks' folder that causes the bundle error
+        system("find \\"\#{installer.sandbox.root}\\" -name 'Frameworks' -type d -exec rm -rf {} +")
+      end
+      
+      # ADD RPATH FIX FOR COREPAYMENTCARD
+      if target.name == 'CorePaymentCard' || target.name.include?('Square')
+        puts "🔧 Fixing rpath for #{target.name}..."
         target.build_configurations.each do |config|
-          config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = ['$(inherited)', '@executable_path/Frameworks', '@loader_path/Frameworks']
+          # Ensure the framework can be found at runtime
+          config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = [
+            '$(inherited)',
+            '@executable_path/Frameworks',
+            '@loader_path/Frameworks'
+          ]
         end
       end
     end
 `;
 
-      // Find the post_install block and inject our code before react_native_post_install
       if (podfileContent.includes('post_install do |installer|')) {
-        // Insert our code right after the post_install line, before react_native_post_install
-        podfileContent = podfileContent.replace(
-          /(post_install do \|installer\|.*?)(react_native_post_install)/ms,
-          `$1${rpathFixCode}\n  $2`
-        );
-        
-        // Add comment marker
+        // Replace the entire post_install block to avoid duplication
+        if (podfileContent.includes('# Square SDK fix injected')) {
+          // If already injected, replace it with updated version
+          const postInstallRegex = /post_install do \|installer\|(.*?)end/m;
+          podfileContent = podfileContent.replace(postInstallRegex, 
+            `post_install do |installer|${postInstallCode}  end`);
+        } else {
+          // Injects our fix at the top of your existing post_install block
+          podfileContent = podfileContent.replace(
+            'post_install do |installer|',
+            `post_install do |installer|${postInstallCode}`
+          );
+        }
+      } else {
+        podfileContent += `\npost_install do |installer|\n${postInstallCode}\nend\n`;
+      }
+
+      // Add comment marker
+      if (!podfileContent.includes('# Square SDK fix injected')) {
         podfileContent = podfileContent.replace(
           'post_install do |installer|',
-          'post_install do |installer| # Square SDK rpath fix'
+          'post_install do |installer| # Square SDK fix injected'
         );
       }
 
       fs.writeFileSync(podfilePath, podfileContent);
-      console.log('✅ Square SDK rpath fix injected into Podfile');
+      console.log('✅ Square SDK fix (cleanup + rpath) injected into Podfile');
       return config;
     },
   ]);
