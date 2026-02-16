@@ -12,7 +12,10 @@
         "buildType": "apk"
       },
       "ios": {
-        "simulator": true
+        "simulator": true,
+        "cache": {
+          "key": "reset-build-v1"
+        }
       }
     },
     "preview": {
@@ -20,7 +23,10 @@
         "buildType": "apk"
       },
       "distribution": "internal",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "ios": {
+        "simulator": true
+      }
     },
     "production": {
       "env": {

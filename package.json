@@ -11,6 +11,7 @@
     "type-check": "tsc --noEmit",
     "postinstall": "node scripts/fix-square-payments.js",
     "fix:square": "node scripts/fix-square-payments.js",
+    "fix:ios": "node scripts/fix-ios-rpath.js",
     "prebuild": "node scripts/fix-square-payments.js",
     "prestart": "node scripts/fix-square-payments.js"
   },
