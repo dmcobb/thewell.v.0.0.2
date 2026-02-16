@@ -5,7 +5,7 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
-    "ios": "expo run:ios && node scripts/fix-square-payments.js && node scripts/fix-ios-frameworks.js",
+    "ios": "expo run:ios && node scripts/fix-ios-frameworks.js",
     "web": "expo start --web",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",

@@ -1,17 +1,16 @@
 // plugins/with-fix-square-frameworks.js
-const { withDangerousMod, withXcodeProject } = require('@expo/config-plugins');
+const { withDangerousMod } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
 module.exports = (config) => {
-  // First, modify the Podfile
-  config = withDangerousMod(config, [
+  return withDangerousMod(config, [
     'ios',
     async (config) => {
       const podfilePath = path.join(config.modRequest.projectRoot, 'ios', 'Podfile');
       let podfileContent = fs.readFileSync(podfilePath, 'utf8');
 
-      // Enhanced Ruby script to fix framework issues
+      // Fixed Ruby script - removed the problematic array syntax
       const postInstallCode = `
     # Function to find and copy CorePaymentCard framework
     def copy_core_payment_card_framework(installer)
@@ -54,14 +53,10 @@ module.exports = (config) => {
       if target.name.include?('SquareInAppPaymentsSDK') || target.name.include?('SquareBuyerVerificationSDK')
         puts "🔧 Fixing \#{target.name}..."
         
-        # Remove problematic files
+        # Fix framework search paths - use proper Ruby array syntax
         target.build_configurations.each do |config|
-          config.build_settings['FRAMEWORK_SEARCH_PATHS'] = ['$(inherited)', '$(PODS_CONFIGURATION_BUILD_DIR)/SquareInAppPaymentsSDK']
-          config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = [
-            '$(inherited)',
-            '@executable_path/Frameworks',
-            '@loader_path/Frameworks'
-          ]
+          config.build_settings['FRAMEWORK_SEARCH_PATHS'] = ['$(inherited)', '${PODS_CONFIGURATION_BUILD_DIR}/SquareInAppPaymentsSDK']
+          config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = ['$(inherited)', '@executable_path/Frameworks', '@loader_path/Frameworks']
         end
       end
       
@@ -70,8 +65,7 @@ module.exports = (config) => {
         target.build_configurations.each do |config|
           config.build_settings['SKIP_INSTALL'] = 'NO'
           config.build_settings['INSTALL_PATH'] = '@rpath'
-          config.build_settings['FRAMEWORK_SEARCH_PATHS'] = ['$(inherited)']
-          config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'  # Disable signing for now
+          config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
         end
       end
     end
@@ -80,91 +74,33 @@ module.exports = (config) => {
     copy_core_payment_card_framework(installer)
 `;
 
-      // Inject the code into Podfile
+      // Check if our fix is already injected
+      if (podfileContent.includes('# Square SDK fix injected')) {
+        console.log('✅ Square SDK fix already present in Podfile');
+        return config;
+      }
+
+      // Find the post_install block and inject our code
       if (podfileContent.includes('post_install do |installer|')) {
-        if (podfileContent.includes('# Square SDK fix injected')) {
-          const postInstallRegex = /post_install do \|installer\|(.*?)end/m;
-          podfileContent = podfileContent.replace(postInstallRegex, 
-            `post_install do |installer|${postInstallCode}  end`);
-        } else {
-          podfileContent = podfileContent.replace(
-            'post_install do |installer|',
-            `post_install do |installer|${postInstallCode}`
-          );
-        }
+        // Insert our code right after the post_install line
+        podfileContent = podfileContent.replace(
+          /(post_install do \|installer\|)(.*?)(?=end)/m,
+          `$1${postInstallCode}`
+        );
       } else {
-        podfileContent += `\npost_install do |installer|\n${postInstallCode}\nend\n`;
+        // If no post_install block exists, add one
+        podfileContent += `\n\npost_install do |installer|${postInstallCode}\nend\n`;
       }
 
       // Add comment marker
-      podfileContent = podfileContent.replace('post_install do |installer|', 
-        'post_install do |installer| # Square SDK fix injected');
+      podfileContent = podfileContent.replace(
+        'post_install do |installer|',
+        'post_install do |installer| # Square SDK fix injected'
+      );
 
       fs.writeFileSync(podfilePath, podfileContent);
       console.log('✅ Square SDK fix injected into Podfile');
       return config;
     },
   ]);
-
-  // Now modify the Xcode project to ensure proper framework linking
-  config = withXcodeProject(config, async (config) => {
-    const xcodeProject = config.modResults;
-    
-    // Find the main target
-    const target = xcodeProject.getFirstTarget().uuid;
-    
-    // Add runpath search paths to the main target
-    const configurations = xcodeProject.pbxXCBuildConfigurationSection();
-    
-    Object.keys(configurations).forEach(key => {
-      const config = configurations[key];
-      if (config && config.buildSettings) {
-        // Ensure LD_RUNPATH_SEARCH_PATHS includes @executable_path/Frameworks
-        let runpathPaths = config.buildSettings.LD_RUNPATH_SEARCH_PATHS || [];
-        if (!Array.isArray(runpathPaths)) {
-          runpathPaths = [runpathPaths];
-        }
-        
-        const requiredPaths = [
-          '$(inherited)',
-          '@executable_path/Frameworks',
-          '@loader_path/Frameworks'
-        ];
-        
-        requiredPaths.forEach(path => {
-          if (!runpathPaths.includes(path)) {
-            runpathPaths.push(path);
-          }
-        });
-        
-        config.buildSettings.LD_RUNPATH_SEARCH_PATHS = runpathPaths;
-        
-        // Also ensure FRAMEWORK_SEARCH_PATHS includes the right locations
-        let frameworkPaths = config.buildSettings.FRAMEWORK_SEARCH_PATHS || [];
-        if (!Array.isArray(frameworkPaths)) {
-          frameworkPaths = [frameworkPaths];
-        }
-        
-        const requiredFrameworkPaths = [
-          '$(inherited)',
-          '$(PROJECT_DIR)/Pods/CorePaymentCard',
-          '$(PROJECT_DIR)/Pods/SquareInAppPaymentsSDK',
-          '$(PROJECT_DIR)/Pods/SquareBuyerVerificationSDK'
-        ];
-        
-        requiredFrameworkPaths.forEach(path => {
-          if (!frameworkPaths.includes(path)) {
-            frameworkPaths.push(path);
-          }
-        });
-        
-        config.buildSettings.FRAMEWORK_SEARCH_PATHS = frameworkPaths;
-      }
-    });
-    
-    console.log('✅ Xcode project updated with correct framework search paths');
-    return config;
-  });
-
-  return config;
 };
