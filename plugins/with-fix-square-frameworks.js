@@ -42,36 +42,43 @@ module.exports = (config) => {
 
       // Updated post_install code with iOS 26.0
       const postInstallCode = `
-    # Check if we're on an Apple Silicon Mac
+    # Check the architecture
     is_apple_silicon = \`sysctl -n hw.optional.arm64 2>/dev/null\`.strip.to_i == 1
+    is_macos = RUBY_PLATFORM.include?('darwin')
     
-    puts "🔍 Detected \#{is_apple_silicon ? 'Apple Silicon' : 'Intel'} Mac"
+    puts "🔍 Running on \#{is_apple_silicon ? 'Apple Silicon' : 'Intel'} Mac"
     
     installer.pods_project.targets.each do |target|
-      # Additional Hermes fixes for Apple Silicon
-      if target.name == 'hermes-engine' && is_apple_silicon
-        puts "🔧 Applying additional Hermes fixes for \#{target.name}..."
+      # Fix for hermes-engine - prevent macOS builds
+      if target.name == 'hermes-engine'
+        puts "🔧 Fixing Hermes build for simulator only..."
         target.build_configurations.each do |config|
-          # Set minimum deployment target to 26.0
+          # Set deployment target
           config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '26.0'
           
-          # Exclude arm64 for simulator builds on Apple Silicon
-          if config.name.include?('Debug')
+          # CRITICAL: Prevent building for macOS
+          config.build_settings['SUPPORTED_PLATFORMS'] = 'iphonesimulator iphoneos'
+          config.build_settings['VALID_ARCHS[sdk=iphoneos*]'] = 'arm64'
+          config.build_settings['VALID_ARCHS[sdk=iphonesimulator*]'] = 'x86_64 arm64'
+          
+          # For simulator builds, exclude arm64 if needed
+          if config.name.include?('Debug') && is_apple_silicon
             config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
           end
           
-          # Ensure we're using the prebuilt binary
+          # Force use prebuilt binary
           config.build_settings['HERMES_BUILD_FROM_SOURCE'] = 'NO'
+          
+          # Don't build for macOS
+          config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = nil
         end
       end
       
       # Ensure all targets use at least iOS 26.0
-      if target.name != 'hermes-engine'
-        target.build_configurations.each do |config|
-          current_target = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f
-          if current_target < 26.0
-            config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '26.0'
-          end
+      target.build_configurations.each do |config|
+        current_target = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f
+        if current_target < 26.0 && current_target > 0
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '26.0'
         end
       end
       
@@ -103,7 +110,7 @@ module.exports = (config) => {
       end
     end
 
-    # Clean up Square SDK files (always run)
+    # Clean up Square SDK files
     system("find \\"\#{installer.sandbox.root}\\" -name 'setup' -delete 2>/dev/null || true")
     system("find \\"\#{installer.sandbox.root}\\" -name 'Frameworks' -type d -exec rm -rf {} + 2>/dev/null || true")
 `;
@@ -126,6 +133,7 @@ module.exports = (config) => {
       fs.writeFileSync(podfilePath, podfileContent);
       console.log('✅ Updated iOS deployment target to 26.0');
       console.log('✅ Square SDK and Hermes fixes injected into Podfile');
+      console.log('✅ Hermes will now only build for iOS/simulator, not macOS');
       
       return config;
     },
