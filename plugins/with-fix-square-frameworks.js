@@ -40,14 +40,14 @@ module.exports = (config) => {
         console.log('✅ Updated use_react_native! to use prebuilt Hermes');
       }
 
-      // Critical: Ensure CorePaymentCard is properly embedded
+      // Ensure CorePaymentCard is configured as a dynamic framework during pod install
       const postInstallCode = `
-    puts "🔧 Fixing CorePaymentCard framework linking..."
+    puts "🔧 Configuring CorePaymentCard as dynamic framework..."
     
-    # First, ensure CorePaymentCard is properly configured
+    # Configure CorePaymentCard target
     installer.pods_project.targets.each do |target|
       if target.name == 'CorePaymentCard'
-        puts "🔧 Configuring CorePaymentCard for proper embedding..."
+        puts "✅ Found CorePaymentCard target, configuring as dynamic framework..."
         target.build_configurations.each do |config|
           # Make it a dynamic framework
           config.build_settings['MACH_O_TYPE'] = 'mh_dylib'
@@ -64,52 +64,15 @@ module.exports = (config) => {
         end
       end
       
-      # Fix Square SDK targets
+      # Configure Square SDK targets
       if target.name.include?('SquareInAppPaymentsSDK') || target.name.include?('SquareBuyerVerificationSDK')
-        puts "🔧 Fixing \#{target.name} rpaths..."
+        puts "🔧 Configuring \#{target.name} rpaths..."
         target.build_configurations.each do |config|
           config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = [
             '$(inherited)',
             '@executable_path/Frameworks',
             '@loader_path/Frameworks'
           ]
-        end
-      end
-    end
-
-    # CRITICAL: Embed CorePaymentCard in the main app target
-    target 'TheWell' do
-      installer.pods_project.targets.each do |pod_target|
-        if pod_target.name == 'CorePaymentCard'
-          puts "📦 Embedding CorePaymentCard.framework into TheWell app..."
-          
-          # Create embed frameworks build phase if it doesn't exist
-          embed_phase = target.build_phases.find { |phase| 
-            phase.display_name == 'Embed Frameworks' 
-          } || target.new_shell_script_build_phase('Embed Frameworks')
-          
-          # Add copy command for CorePaymentCard
-          embed_phase.shell_script = <<-SCRIPT
-#!/bin/bash
-echo "Copying CorePaymentCard.framework to app bundle..."
-FRAMEWORK_SOURCE="${PODS_ROOT}/CorePaymentCard/CorePaymentCard.framework"
-FRAMEWORK_DEST="${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/CorePaymentCard.framework"
-
-if [ -d "$FRAMEWORK_SOURCE" ]; then
-  rm -rf "$FRAMEWORK_DEST"
-  cp -R "$FRAMEWORK_SOURCE" "$FRAMEWORK_DEST"
-  
-  # Fix the framework's internal install name
-  install_name_tool -id @rpath/CorePaymentCard.framework/CorePaymentCard "$FRAMEWORK_DEST/CorePaymentCard"
-  
-  # Sign the framework (required for device)
-  codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" "${FRAMEWORK_DEST}"
-  
-  echo "✅ CorePaymentCard.framework copied and signed"
-else
-  echo "⚠️ CorePaymentCard.framework not found at $FRAMEWORK_SOURCE"
-fi
-SCRIPT
         end
       end
     end
@@ -131,12 +94,12 @@ SCRIPT
       // Add marker comment
       podfileContent = podfileContent.replace(
         'post_install do |installer|',
-        'post_install do |installer| # Square SDK and CorePaymentCard embedding fixes'
+        'post_install do |installer| # Square SDK and CorePaymentCard dynamic framework config'
       );
 
       fs.writeFileSync(podfilePath, podfileContent);
-      console.log('✅ CorePaymentCard will now be embedded and signed in the app');
-      console.log('✅ This should fix the DYLD error on physical devices');
+      console.log('✅ CorePaymentCard configured as dynamic framework (will be processed during pod install)');
+      console.log('✅ Run `cd ios && pod install` after prebuild to apply changes');
       
       return config;
     },
