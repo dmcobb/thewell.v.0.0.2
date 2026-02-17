@@ -5,14 +5,11 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
-    "ios": "expo run:ios && node scripts/fix-square-payments.js",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
-    "postinstall": "node scripts/fix-square-payments.js",
-    "fix:square": "node scripts/fix-square-payments.js",
-    "prebuild": "node scripts/fix-square-payments.js",
-    "prestart": "node scripts/fix-square-payments.js"
+    "postinstall": "node scripts/fix-square-payments.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

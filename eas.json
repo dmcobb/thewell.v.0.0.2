@@ -12,10 +12,7 @@
         "buildType": "apk"
       },
       "ios": {
-        "simulator": true,
-        "cache": {
-          "key": "reset-build-v1"
-        }
+        "simulator": true
       }
     },
     "preview": {
@@ -29,6 +26,9 @@
       }
     },
     "production": {
+      "ios": {
+        "postExport": "node scripts/fix-square-payments.js"
+      },
       "env": {
         "NODE_ENV": "development",
         "EXPO_PUBLIC_SQUARE_ENVIRONMENT": "sandbox",

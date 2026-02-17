@@ -72,7 +72,7 @@
           }
         }
       ],
-      "./plugins/with-fix-square-frameworks.js"
+      "./withSquareFix.js"
     ],
     "experiments": {
       "typedRoutes": true
