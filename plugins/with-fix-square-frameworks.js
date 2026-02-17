@@ -2,7 +2,6 @@
 const { withDangerousMod } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
 module.exports = (config) => {
   return withDangerousMod(config, [
@@ -12,59 +11,19 @@ module.exports = (config) => {
       let podfileContent = fs.readFileSync(podfilePath, 'utf8');
 
       // Check if our fix is already injected
-      if (podfileContent.includes('# Square SDK + Hermes fix injected')) {
-        console.log('✅ Square SDK + Hermes fix already present in Podfile');
+      if (podfileContent.includes('# Square SDK fix injected')) {
+        console.log('✅ Square SDK fix already present in Podfile');
         return config;
       }
 
-      // Combined fix for Square SDK and Hermes
+      // Clean Square SDK files and add rpath
       const postInstallCode = `
-    require 'fileutils'
-    
-    # Fix Hermes framework path
-    def fix_hermes_path(installer)
-      puts "🔧 Checking Hermes framework location..."
-      
-      # Find where Hermes actually is
-      hermes_paths = Dir.glob(File.join(installer.sandbox.root, '**', 'hermes.xcframework'))
-      
-      if hermes_paths.empty?
-        puts "⚠️ Hermes.xcframework not found in Pods! This is a problem."
-        return
-      end
-      
-      hermes_found = hermes_paths.first
-      puts "✅ Found Hermes at: \#{hermes_found}"
-      
-      # Create the expected directory structure
-      target_dir = File.join(installer.sandbox.root, 'hermes-engine', 'destroot', 'Library', 'Frameworks', 'universal')
-      FileUtils.mkdir_p(target_dir)
-      
-      # Create symlink if needed
-      expected_path = File.join(target_dir, 'hermes.xcframework')
-      unless File.exist?(expected_path)
-        puts "📋 Creating symlink to Hermes framework..."
-        FileUtils.ln_sf(hermes_found, expected_path)
-      end
-      
-      # Also check if the simulator slice exists
-      simulator_slice = File.join(expected_path, 'ios-arm64_x86_64-simulator')
-      if !Dir.exist?(simulator_slice)
-        # Try to find the simulator slice in the original location
-        orig_simulator = File.join(File.dirname(hermes_found), 'ios-arm64_x86_64-simulator')
-        if Dir.exist?(orig_simulator)
-          puts "📋 Creating symlink for simulator slice..."
-          FileUtils.ln_sf(orig_simulator, simulator_slice)
-        end
-      end
-    end
-
-    # Clean Square SDK files and add rpath
     installer.pods_project.targets.each do |target|
       if target.name.include?('SquareInAppPaymentsSDK') || target.name.include?('SquareBuyerVerificationSDK')
         puts "🔧 Cleaning Square SDK files from Pod: \#{target.name}"
-        # Use system commands to delete files
+        # Delete the 'setup' file that causes signature errors
         system("find \\"\#{installer.sandbox.root}\\" -name 'setup' -delete")
+        # Delete the nested 'Frameworks' folder that causes bundle errors
         system("find \\"\#{installer.sandbox.root}\\" -name 'Frameworks' -type d -exec rm -rf {} +")
         
         # Add rpath for Square frameworks
@@ -91,14 +50,11 @@ module.exports = (config) => {
         end
       end
     end
-
-    # Fix Hermes path
-    fix_hermes_path(installer)
 `;
 
       // Inject the code into Podfile
       if (podfileContent.includes('post_install do |installer|')) {
-        if (podfileContent.includes('# Square SDK + Hermes fix injected')) {
+        if (podfileContent.includes('# Square SDK fix injected')) {
           const postInstallRegex = /post_install do \|installer\|(.*?)end/m;
           podfileContent = podfileContent.replace(postInstallRegex, 
             `post_install do |installer|${postInstallCode}  end`);
@@ -113,15 +69,15 @@ module.exports = (config) => {
       }
 
       // Add comment marker
-      if (!podfileContent.includes('# Square SDK + Hermes fix injected')) {
+      if (!podfileContent.includes('# Square SDK fix injected')) {
         podfileContent = podfileContent.replace(
           'post_install do |installer|',
-          'post_install do |installer| # Square SDK + Hermes fix injected'
+          'post_install do |installer| # Square SDK fix injected'
         );
       }
 
       fs.writeFileSync(podfilePath, podfileContent);
-      console.log('✅ Square SDK + Hermes fixes injected into Podfile');
+      console.log('✅ Square SDK fixes injected into Podfile');
       return config;
     },
   ]);
