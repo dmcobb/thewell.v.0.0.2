@@ -40,11 +40,11 @@ module.exports = (config) => {
         console.log('✅ Updated use_react_native! to use prebuilt Hermes');
       }
 
-      // Post_install code that prepares frameworks for your script
+      // Post_install code that adds pre-build cleanup phase
       const postInstallCode = `
-    puts "🔧 Preparing Square SDK frameworks for post-build cleanup..."
+    puts "🔧 Setting up Square SDK pre-build cleanup..."
     
-    # Configure CorePaymentCard as dynamic framework (for your script to find it)
+    # Configure CorePaymentCard as dynamic framework
     installer.pods_project.targets.each do |target|
       if target.name == 'CorePaymentCard'
         puts "✅ Configuring CorePaymentCard as dynamic framework..."
@@ -61,32 +61,69 @@ module.exports = (config) => {
       end
     end
 
-    # IMPORTANT: Clean the SOURCE frameworks before they get built
-    # This prevents the nested Frameworks folders and setup files from being included
-    puts "🔧 Removing nested Frameworks folders and setup files from Square SDK source..."
+    # Add a PRE-BUILD phase to clean Square SDK frameworks BEFORE they are processed
+    target = installer.aggregate_targets.first.user_targets.first
     
-    # Find and clean all Square SDK frameworks in Pods
-    Dir.glob("\#{installer.sandbox.root}/*Square*SDK*").each do |framework_dir|
-      if File.directory?(framework_dir)
-        # Remove nested Frameworks folders
-        nested_frameworks = File.join(framework_dir, 'Frameworks')
-        if File.directory?(nested_frameworks)
-          FileUtils.rm_rf(nested_frameworks)
-          puts "  Removed nested Frameworks from \#{File.basename(framework_dir)}"
-        end
-        
-        # Remove setup file
-        setup_file = File.join(framework_dir, 'setup')
-        if File.file?(setup_file)
-          FileUtils.rm_f(setup_file)
-          puts "  Removed setup file from \#{File.basename(framework_dir)}"
-        end
+    # Check if phase already exists
+    phase_exists = false
+    target.build_phases.each do |phase|
+      if phase.display_name == 'Clean Square SDK Frameworks'
+        phase_exists = true
+        break
       end
     end
     
-    # Also clean any Frameworks folders inside .frameworks
-    system("find \\"\#{installer.sandbox.root}\\" -name 'Frameworks' -type d -exec rm -rf {} + 2>/dev/null || true")
-    system("find \\"\#{installer.sandbox.root}\\" -name 'setup' -type f -delete 2>/dev/null || true")
+    unless phase_exists
+      puts "🔧 Adding pre-build cleanup phase for Square SDK frameworks..."
+      
+      # Create new shell script phase
+      clean_phase = target.new_shell_script_build_phase('Clean Square SDK Frameworks')
+      clean_phase.shell_script = <<-CLEAN
+#!/bin/bash
+echo "🔧 CLEANING SQUARE SDK FRAMEWORKS BEFORE BUILD..."
+
+# Define paths
+PODS_ROOT="\${SRCROOT}/Pods"
+APP_FRAMEWORKS_DIR="\${TARGET_BUILD_DIR}/\${FRAMEWORKS_FOLDER_PATH}"
+
+# Clean source frameworks in Pods (prevent them from being copied with nested files)
+echo "Cleaning Square SDK frameworks in Pods..."
+find "\${PODS_ROOT}" -name 'SquareInAppPaymentsSDK.framework' -type d | while read framework; do
+  echo "  Cleaning: \$framework"
+  # Remove nested Frameworks folder
+  rm -rf "\$framework/Frameworks" 2>/dev/null || true
+  # Remove setup file
+  rm -f "\$framework/setup" 2>/dev/null || true
+done
+
+find "\${PODS_ROOT}" -name 'SquareBuyerVerificationSDK.framework' -type d | while read framework; do
+  echo "  Cleaning: \$framework"
+  # Remove nested Frameworks folder
+  rm -rf "\$framework/Frameworks" 2>/dev/null || true
+  # Remove setup file
+  rm -f "\$framework/setup" 2>/dev/null || true
+done
+
+# Also clean any already copied frameworks in build dir (just in case)
+if [ -d "\${APP_FRAMEWORKS_DIR}" ]; then
+  echo "Cleaning Square SDK frameworks in build directory..."
+  find "\${APP_FRAMEWORKS_DIR}" -name 'SquareInAppPaymentsSDK.framework' -type d | while read framework; do
+    rm -rf "\$framework/Frameworks" 2>/dev/null || true
+    rm -f "\$framework/setup" 2>/dev/null || true
+  done
+  find "\${APP_FRAMEWORKS_DIR}" -name 'SquareBuyerVerificationSDK.framework' -type d | while read framework; do
+    rm -rf "\$framework/Frameworks" 2>/dev/null || true
+    rm -f "\$framework/setup" 2>/dev/null || true
+  done
+fi
+
+echo "✅ Square SDK frameworks cleaned"
+CLEAN
+      
+      # Move the clean phase to the beginning (before Compile Sources)
+      target.build_phases.unshift(target.build_phases.pop)
+      puts "✅ Pre-build cleanup phase added"
+    end
 `;
 
       // Handle post_install block
@@ -105,9 +142,8 @@ module.exports = (config) => {
       );
 
       fs.writeFileSync(podfilePath, podfileContent);
-      console.log('✅ Square SDK source frameworks cleaned (nested Frameworks and setup files removed)');
+      console.log('✅ Added pre-build cleanup phase for Square SDK frameworks');
       console.log('✅ CorePaymentCard configured as dynamic framework');
-      console.log('✅ Your fix-square-payments.js script will still copy and sign CorePaymentCard after build');
       
       return config;
     },

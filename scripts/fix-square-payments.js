@@ -5,7 +5,7 @@ const { execSync } = require('child_process');
 
 console.log('🔧 Fixing Square SDK and CorePaymentCard...');
 
-// 1. Fix package.json exports (your original code)
+// 1. Fix package.json exports
 const packagePath = path.join(__dirname, '../node_modules/react-native-square-in-app-payments/package.json');
 try {
   const data = fs.readFileSync(packagePath, 'utf8');
@@ -29,7 +29,50 @@ try {
   console.error('❌ Error fixing package.json:', error.message);
 }
 
-// 2. Locate the built .app bundle
+// 2. Clean Square SDK frameworks in Pods (pre-build)
+const podsDir = path.join(__dirname, '../ios/Pods');
+if (fs.existsSync(podsDir)) {
+  console.log('🔧 Preemptively cleaning Square SDK frameworks in Pods...');
+  
+  // Find and clean all Square SDK frameworks
+  const squareFrameworks = [
+    'SquareInAppPaymentsSDK.framework',
+    'SquareBuyerVerificationSDK.framework'
+  ];
+  
+  squareFrameworks.forEach(framework => {
+    const findCommand = `find "${podsDir}" -name "${framework}" -type d`;
+    try {
+      const frameworkPaths = execSync(findCommand, { encoding: 'utf8' }).trim().split('\n');
+      
+      frameworkPaths.forEach(frameworkPath => {
+        if (frameworkPath) {
+          console.log(`  Cleaning: ${frameworkPath}`);
+          
+          // Remove nested Frameworks folder
+          const nestedFrameworks = path.join(frameworkPath, 'Frameworks');
+          if (fs.existsSync(nestedFrameworks)) {
+            execSync(`rm -rf "${nestedFrameworks}"`);
+            console.log(`    Removed nested Frameworks`);
+          }
+          
+          // Remove setup file
+          const setupFile = path.join(frameworkPath, 'setup');
+          if (fs.existsSync(setupFile)) {
+            fs.unlinkSync(setupFile);
+            console.log(`    Removed setup file`);
+          }
+        }
+      });
+    } catch (error) {
+      // No frameworks found, ignore
+    }
+  });
+  
+  console.log('✅ Preemptive cleaning complete');
+}
+
+// 3. Locate the built .app bundle
 const iosBuildPath = path.join(__dirname, '../ios/build');
 if (!fs.existsSync(iosBuildPath)) {
   console.log('⚠️ No iOS build folder found – skipping framework copy');
@@ -56,8 +99,7 @@ if (!fs.existsSync(frameworksDir)) {
   fs.mkdirSync(frameworksDir, { recursive: true });
 }
 
-// 3. Look for CorePaymentCard.framework in Pods
-const podsDir = path.join(__dirname, '../ios/Pods');
+// 4. Look for CorePaymentCard.framework in Pods
 const corePaymentCardSource = path.join(podsDir, 'CorePaymentCard', 'CorePaymentCard.framework');
 
 if (fs.existsSync(corePaymentCardSource)) {
@@ -78,7 +120,7 @@ if (fs.existsSync(corePaymentCardSource)) {
     console.log('🔧 Updated CorePaymentCard binary install name');
   }
 
-  // **Sign the framework** (required for device)
+  // Sign the framework
   try {
     execSync(`codesign --force --sign - "${corePaymentCardDest}"`);
     console.log('✅ Signed CorePaymentCard.framework');
@@ -89,23 +131,58 @@ if (fs.existsSync(corePaymentCardSource)) {
   console.log('❌ CorePaymentCard.framework not found in Pods');
 }
 
-// 4. Also clean up Square frameworks (your existing code)
+// 5. Aggressively clean Square frameworks in the built app
+console.log('🔨 Aggressively cleaning Square frameworks in app bundle...');
 const cleanFramework = (name) => {
   const frameworkPath = path.join(frameworksDir, name);
   if (fs.existsSync(frameworkPath)) {
-    console.log(`🔨 Cleaning ${name}...`);
+    console.log(`  Cleaning ${name}...`);
+    
+    // Remove nested Frameworks folder
     const nestedFrameworks = path.join(frameworkPath, 'Frameworks');
     if (fs.existsSync(nestedFrameworks)) {
       execSync(`rm -rf "${nestedFrameworks}"`);
+      console.log(`    Removed nested Frameworks`);
     }
+    
+    // Remove setup file
     const setupFile = path.join(frameworkPath, 'setup');
     if (fs.existsSync(setupFile)) {
       fs.unlinkSync(setupFile);
+      console.log(`    Removed setup file`);
+    }
+    
+    // Re-sign the framework after cleaning
+    try {
+      execSync(`codesign --force --sign - "${frameworkPath}"`);
+      console.log(`    Re-signed ${name}`);
+    } catch (signError) {
+      console.log(`    ⚠️ Could not re-sign ${name}`);
     }
   }
 };
 
 cleanFramework('SquareInAppPaymentsSDK.framework');
 cleanFramework('SquareBuyerVerificationSDK.framework');
+
+// 6. Final verification
+console.log('🔍 Verifying cleanup...');
+try {
+  const checkFrameworks = execSync(`find "${frameworksDir}" -name "Frameworks" -type d`, { encoding: 'utf8' }).trim();
+  if (checkFrameworks) {
+    console.log('⚠️ Some nested Frameworks folders still exist:', checkFrameworks);
+  } else {
+    console.log('✅ No nested Frameworks folders found');
+  }
+  
+  const checkSetup = execSync(`find "${frameworksDir}" -name "setup" -type f`, { encoding: 'utf8' }).trim();
+  if (checkSetup) {
+    console.log('⚠️ Some setup files still exist:', checkSetup);
+  } else {
+    console.log('✅ No setup files found');
+  }
+} catch (error) {
+  // No files found is good
+}
 
 console.log('✅ All framework fixes applied');
