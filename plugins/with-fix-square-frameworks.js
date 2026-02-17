@@ -10,23 +10,40 @@ module.exports = (config) => {
       const podfilePath = path.join(config.modRequest.projectRoot, 'ios', 'Podfile');
       let podfileContent = fs.readFileSync(podfilePath, 'utf8');
 
-      // This Ruby script is injected into your Podfile's post_install block.
-      // It deletes illegal files AND adds rpath for CorePaymentCard
+      // Combined fix for Square SDK and Hermes
       const postInstallCode = `
+    # Fix Hermes framework path
+    def fix_hermes_path(installer)
+      hermes_path = File.join(installer.sandbox.root, 'hermes-engine', 'destroot', 'Library', 'Frameworks', 'universal', 'hermes.xcframework')
+      if Dir.exist?(hermes_path)
+        puts "✅ Found Hermes at: \#{hermes_path}"
+      else
+        puts "⚠️ Hermes not found at expected path, checking alternative locations..."
+        # Try to find Hermes elsewhere
+        find_hermes = \`find "\#{installer.sandbox.root}" -name "hermes.xcframework" -type d | head -1\`.strip
+        if !find_hermes.empty?
+          puts "✅ Found Hermes at: \#{find_hermes}"
+          # Create symlink to expected location
+          target_dir = File.join(installer.sandbox.root, 'hermes-engine', 'destroot', 'Library', 'Frameworks', 'universal')
+          FileUtils.mkdir_p(target_dir)
+          FileUtils.ln_sf(find_hermes, File.join(target_dir, 'hermes.xcframework'))
+          puts "✅ Created symlink to Hermes framework"
+        end
+      end
+    end
+
+    # Clean Square SDK files
     installer.pods_project.targets.each do |target|
       if target.name.include?('SquareInAppPaymentsSDK') || target.name.include?('SquareBuyerVerificationSDK')
-        puts "Cleaning Square SDK files from Pod: #{target.name}"
-        # Delete the 'setup' file that causes the signature error
+        puts "Cleaning Square SDK files from Pod: \#{target.name}"
         system("find \\"\#{installer.sandbox.root}\\" -name 'setup' -delete")
-        # Delete the nested 'Frameworks' folder that causes the bundle error
         system("find \\"\#{installer.sandbox.root}\\" -name 'Frameworks' -type d -exec rm -rf {} +")
       end
       
-      # ADD RPATH FIX FOR COREPAYMENTCARD
+      # Add rpath fix
       if target.name == 'CorePaymentCard' || target.name.include?('Square')
-        puts "🔧 Fixing rpath for #{target.name}..."
+        puts "🔧 Fixing rpath for \#{target.name}..."
         target.build_configurations.each do |config|
-          # Ensure the framework can be found at runtime
           config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = [
             '$(inherited)',
             '@executable_path/Frameworks',
@@ -35,17 +52,18 @@ module.exports = (config) => {
         end
       end
     end
+
+    # Fix Hermes path
+    fix_hermes_path(installer)
 `;
 
+      // Inject the code into Podfile
       if (podfileContent.includes('post_install do |installer|')) {
-        // Replace the entire post_install block to avoid duplication
         if (podfileContent.includes('# Square SDK fix injected')) {
-          // If already injected, replace it with updated version
           const postInstallRegex = /post_install do \|installer\|(.*?)end/m;
           podfileContent = podfileContent.replace(postInstallRegex, 
             `post_install do |installer|${postInstallCode}  end`);
         } else {
-          // Injects our fix at the top of your existing post_install block
           podfileContent = podfileContent.replace(
             'post_install do |installer|',
             `post_install do |installer|${postInstallCode}`
@@ -64,7 +82,7 @@ module.exports = (config) => {
       }
 
       fs.writeFileSync(podfilePath, podfileContent);
-      console.log('✅ Square SDK fix (cleanup + rpath) injected into Podfile');
+      console.log('✅ Square SDK + Hermes fixes injected into Podfile');
       return config;
     },
   ]);
