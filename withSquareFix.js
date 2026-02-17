@@ -1,4 +1,4 @@
-const { withXcodeProject } = require('@expo/config-plugins');
+const { withXcodeProject } = require('expo/config-plugins');
 
 const withSquareFix = (config) => {
   return withXcodeProject(config, (config) => {
