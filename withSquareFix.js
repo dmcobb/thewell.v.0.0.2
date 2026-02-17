@@ -6,9 +6,21 @@ const withSquareFix = (config) => {
     const targetUuid = xcodeProject.getFirstTarget().uuid;
 
     const scriptName = 'SQUARE_CLEANUP_FINAL';
-    const shellScript = `
+        const shellScript = `
 echo "🚀 [SQUARE_FIX] Starting cleanup and re-signing..."
-FRAMEWORKS="\${BUILT_PRODUCTS_DIR}/\${FRAMEWORKS_FOLDER_PATH}"
+
+# Define potential paths for the app bundle
+# Archive builds often use different environment variables than standard builds
+if [ -d "\${INSTALL_PATH}/\${CONTENTS_FOLDER_PATH}/Frameworks" ]; then
+    FRAMEWORKS="\${INSTALL_PATH}/\${CONTENTS_FOLDER_PATH}/Frameworks"
+elif [ -d "\${BUILT_PRODUCTS_DIR}/\${FRAMEWORKS_FOLDER_PATH}" ]; then
+    FRAMEWORKS="\${BUILT_PRODUCTS_DIR}/\${FRAMEWORKS_FOLDER_PATH}"
+else
+    # Fallback: Search the immediate build directory for the .app folder
+    FRAMEWORKS=$(find "\${DERIVED_FILE_DIR}/.." -name "*.app" -type d -finddepth 1)/Frameworks
+fi
+
+echo "📂 [SQUARE_FIX] Checking path: \${FRAMEWORKS}"
 
 if [ -d "\${FRAMEWORKS}/SquareInAppPaymentsSDK.framework" ]; then
   # 1. Run Square setup
@@ -27,9 +39,11 @@ if [ -d "\${FRAMEWORKS}/SquareInAppPaymentsSDK.framework" ]; then
   
   echo "✅ [SQUARE_FIX] Completed successfully."
 else
-  echo "❌ [SQUARE_FIX] Error: Frameworks NOT FOUND in \${FRAMEWORKS}"
+  echo "❌ [SQUARE_FIX] Error: Square frameworks not found. Current directory content:"
+  ls -R "\${FRAMEWORKS%/*}" | grep ".framework" || echo "No frameworks found at all."
 fi
     `;
+
 
     // Remove existing phase if it exists (prevents duplicates)
     const phases = xcodeProject.hash.project.objects.PBXShellScriptBuildPhase;
