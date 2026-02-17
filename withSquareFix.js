@@ -1,4 +1,3 @@
-// withSquareFix.js
 const { withXcodeProject } = require('@expo/config-plugins');
 
 module.exports = (config) => {
@@ -6,44 +5,48 @@ module.exports = (config) => {
     const xcodeProject = config.modResults;
     const targetUuid = xcodeProject.getFirstTarget().uuid;
 
-    const squareSetupScript = `
+    // Use a unique name so we can find it in the logs easily
+    const scriptName = 'FIX_SQUARE_SUBMISSION';
+    const shellScript = `
+echo "🚀 [SQUARE_FIX] Starting cleanup and re-signing..."
 FRAMEWORKS="\${BUILT_PRODUCTS_DIR}/\${FRAMEWORKS_FOLDER_PATH}"
 
 if [ -d "\${FRAMEWORKS}/SquareInAppPaymentsSDK.framework" ]; then
-  echo "🔧 Final Square Fix & Cleanup starting..."
-  
-  # 1. Run the Square setup to link CorePaymentCard
+  # 1. Run the Square setup script
   "\${FRAMEWORKS}/SquareInAppPaymentsSDK.framework/setup"
 
-  # 2. Delete the disallowed 'setup' files and nested 'Frameworks' folders
-  echo "🧹 Removing disallowed files from bundle..."
+  # 2. Delete disallowed files for App Store
   find "\${FRAMEWORKS}" -name "setup" -type f -delete
   find "\${FRAMEWORKS}" -name "Frameworks" -type d -exec rm -rf {} +
 
-  # 3. Force re-sign everything with the Distribution Identity
-  echo "✍️ Re-signing Square frameworks..."
+  # 3. Force re-sign for App Store submission
   /usr/bin/codesign --force --sign "\${EXPANDED_CODE_SIGN_IDENTITY}" --preserve-metadata=identifier,entitlements,flags --timestamp=none "\${FRAMEWORKS}/SquareInAppPaymentsSDK.framework"
   /usr/bin/codesign --force --sign "\${EXPANDED_CODE_SIGN_IDENTITY}" --preserve-metadata=identifier,entitlements,flags --timestamp=none "\${FRAMEWORKS}/SquareBuyerVerificationSDK.framework"
   /usr/bin/codesign --force --sign "\${EXPANDED_CODE_SIGN_IDENTITY}" --preserve-metadata=identifier,entitlements,flags --timestamp=none "\${FRAMEWORKS}/CorePaymentCard.framework"
   
-  echo "✅ Square fix complete."
+  echo "✅ [SQUARE_FIX] Cleanup and Re-signing complete."
 else
-  echo "⚠️ Square framework not found in \${FRAMEWORKS}, check paths."
+  echo "❌ [SQUARE_FIX] Error: Square frameworks not found in \${FRAMEWORKS}"
 fi
     `;
 
-    // We add the phase at the END of the build process
+    // Add the phase
     xcodeProject.addBuildPhase(
       [],
       'PBXShellScriptBuildPhase',
-      'Fix Square DYLD and Cleanup',
+      scriptName,
       targetUuid,
-      {
-        shellPath: '/bin/sh',
-        shellScript: squareSetupScript,
-        shellScriptLoc: 'end' // <--- CRITICAL: Runs after 'Embed Pods Frameworks'
-      }
+      { shellPath: '/bin/sh', shellScript }
     );
+
+    // CRITICAL: Manually move this phase to the absolute end of the array
+    const target = xcodeProject.pbxTargetByName(xcodeProject.getFirstTarget().target.name);
+    const phases = target.buildPhases;
+    const ourPhaseIndex = phases.findIndex(p => p.comment === scriptName);
+    if (ourPhaseIndex > -1) {
+      const ourPhase = phases.splice(ourPhaseIndex, 1)[0];
+      phases.push(ourPhase); // Put it at the very end
+    }
 
     return config;
   });
