@@ -26,6 +26,10 @@
       }
     },
     "production": {
+      "ios": {
+        "resourceClass": "medium",
+        "buildConfiguration": "Release"
+      },
       "env": {
         "NODE_ENV": "development",
         "EXPO_PUBLIC_SQUARE_ENVIRONMENT": "sandbox",
