@@ -68,7 +68,7 @@
           "ios": {
             "deploymentTarget": "26.0",
             "flipper": false,
-            "hermes": false
+            "hermes": true
           }
         }
       ],
