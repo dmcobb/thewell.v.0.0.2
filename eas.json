@@ -26,9 +26,6 @@
       }
     },
     "production": {
-      "ios": {
-        "postExport": "node scripts/fix-square-payments.js"
-      },
       "env": {
         "NODE_ENV": "development",
         "EXPO_PUBLIC_SQUARE_ENVIRONMENT": "sandbox",
