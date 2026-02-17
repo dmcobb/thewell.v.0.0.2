@@ -40,68 +40,76 @@ module.exports = (config) => {
         console.log('✅ Updated use_react_native! to use prebuilt Hermes');
       }
 
-      // Updated post_install code that removes macOS and tablet support
+      // Critical: Ensure CorePaymentCard is properly embedded
       const postInstallCode = `
-    puts "🔧 Removing macOS and tablet support (Square SDK compatibility)..."
+    puts "🔧 Fixing CorePaymentCard framework linking..."
     
+    # First, ensure CorePaymentCard is properly configured
     installer.pods_project.targets.each do |target|
-      # Remove macOS and tablet support from ALL targets
-      target.build_configurations.each do |config|
-        # Explicitly remove macOS support
-        config.build_settings['SUPPORTED_PLATFORMS'] = 'iphoneos iphonesimulator'
-        config.build_settings['TARGETED_DEVICE_FAMILY'] = '1,2'  # 1 = iPhone, 2 = iPad (remove if you don't want iPad)
-        
-        # Remove any macOS-specific build settings
-        config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = nil
-        config.build_settings['SDKROOT'] = 'iphoneos'
-        
-        # Set iOS deployment target
-        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '26.0'
-      end
-      
-      # Specific fix for hermes-engine
-      if target.name == 'hermes-engine'
-        puts "🔧 Fixing Hermes for iOS only..."
-        target.build_configurations.each do |config|
-          # Force use prebuilt binary
-          config.build_settings['HERMES_BUILD_FROM_SOURCE'] = 'NO'
-          
-          # Only build for iOS
-          config.build_settings['SUPPORTED_PLATFORMS'] = 'iphoneos iphonesimulator'
-          
-          # Fix simulator builds on Apple Silicon
-          if config.name.include?('Debug') && \`sysctl -n hw.optional.arm64 2>/dev/null\`.strip.to_i == 1
-            config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
-          end
-        end
-      end
-      
-      # Square SDK specific fixes
-      if target.name.include?('SquareInAppPaymentsSDK') || target.name.include?('SquareBuyerVerificationSDK')
-        puts "🔧 Fixing Square SDK: \#{target.name}"
-        target.build_configurations.each do |config|
-          config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = [
-            '$(inherited)',
-            '@executable_path/Frameworks',
-            '@loader_path/Frameworks'
-          ]
-          # Ensure no macOS support for Square SDK
-          config.build_settings['SUPPORTED_PLATFORMS'] = 'iphoneos iphonesimulator'
-        end
-      end
-      
       if target.name == 'CorePaymentCard'
-        puts "🔧 Fixing CorePaymentCard..."
+        puts "🔧 Configuring CorePaymentCard for proper embedding..."
         target.build_configurations.each do |config|
-          config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = [
-            '$(inherited)',
-            '@executable_path/Frameworks',
-            '@loader_path/Frameworks'
-          ]
+          # Make it a dynamic framework
+          config.build_settings['MACH_O_TYPE'] = 'mh_dylib'
           config.build_settings['SKIP_INSTALL'] = 'NO'
           config.build_settings['INSTALL_PATH'] = '@rpath'
-          # Ensure no macOS support for CorePaymentCard
-          config.build_settings['SUPPORTED_PLATFORMS'] = 'iphoneos iphonesimulator'
+          config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = [
+            '$(inherited)',
+            '@executable_path/Frameworks',
+            '@loader_path/Frameworks'
+          ]
+          # Ensure it's built for device
+          config.build_settings['SUPPORTED_PLATFORMS'] = 'iphoneos'
+          config.build_settings['VALID_ARCHS'] = 'arm64'
+        end
+      end
+      
+      # Fix Square SDK targets
+      if target.name.include?('SquareInAppPaymentsSDK') || target.name.include?('SquareBuyerVerificationSDK')
+        puts "🔧 Fixing \#{target.name} rpaths..."
+        target.build_configurations.each do |config|
+          config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = [
+            '$(inherited)',
+            '@executable_path/Frameworks',
+            '@loader_path/Frameworks'
+          ]
+        end
+      end
+    end
+
+    # CRITICAL: Embed CorePaymentCard in the main app target
+    target 'TheWell' do
+      installer.pods_project.targets.each do |pod_target|
+        if pod_target.name == 'CorePaymentCard'
+          puts "📦 Embedding CorePaymentCard.framework into TheWell app..."
+          
+          # Create embed frameworks build phase if it doesn't exist
+          embed_phase = target.build_phases.find { |phase| 
+            phase.display_name == 'Embed Frameworks' 
+          } || target.new_shell_script_build_phase('Embed Frameworks')
+          
+          # Add copy command for CorePaymentCard
+          embed_phase.shell_script = <<-SCRIPT
+#!/bin/bash
+echo "Copying CorePaymentCard.framework to app bundle..."
+FRAMEWORK_SOURCE="${PODS_ROOT}/CorePaymentCard/CorePaymentCard.framework"
+FRAMEWORK_DEST="${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/CorePaymentCard.framework"
+
+if [ -d "$FRAMEWORK_SOURCE" ]; then
+  rm -rf "$FRAMEWORK_DEST"
+  cp -R "$FRAMEWORK_SOURCE" "$FRAMEWORK_DEST"
+  
+  # Fix the framework's internal install name
+  install_name_tool -id @rpath/CorePaymentCard.framework/CorePaymentCard "$FRAMEWORK_DEST/CorePaymentCard"
+  
+  # Sign the framework (required for device)
+  codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" "${FRAMEWORK_DEST}"
+  
+  echo "✅ CorePaymentCard.framework copied and signed"
+else
+  echo "⚠️ CorePaymentCard.framework not found at $FRAMEWORK_SOURCE"
+fi
+SCRIPT
         end
       end
     end
@@ -123,13 +131,12 @@ module.exports = (config) => {
       // Add marker comment
       podfileContent = podfileContent.replace(
         'post_install do |installer|',
-        'post_install do |installer| # Square SDK and Hermes fixes injected - macOS/tablet support removed'
+        'post_install do |installer| # Square SDK and CorePaymentCard embedding fixes'
       );
 
       fs.writeFileSync(podfilePath, podfileContent);
-      console.log('✅ iOS deployment target set to 26.0');
-      console.log('✅ macOS and tablet support removed from all targets');
-      console.log('✅ Square SDK and Hermes fixes applied');
+      console.log('✅ CorePaymentCard will now be embedded and signed in the app');
+      console.log('✅ This should fix the DYLD error on physical devices');
       
       return config;
     },
