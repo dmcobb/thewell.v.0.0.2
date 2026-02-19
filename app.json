@@ -71,8 +71,7 @@
             "hermes": false
           }
         }
-      ],
-      "./withSquareFix.js"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -85,6 +84,6 @@
         "origin": "https://api.the-wellapp.com"
       }
     },
-    "owner": "anointed-innovations"
+    "owner": "the-well"
   }
 }

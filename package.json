@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
-    "postinstall": "node scripts/fix-square-payments.js && node scripts/patch-square-frameworks.js"
+    "postinstall": "node scripts/fix-square-payments.js",
+    "eas-build-post-install": "node scrips/patch-square-frameworks.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

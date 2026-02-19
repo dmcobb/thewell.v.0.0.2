@@ -34,7 +34,9 @@
         "NODE_ENV": "development",
         "EXPO_PUBLIC_SQUARE_ENVIRONMENT": "sandbox",
         "EXPO_PUBLIC_SQUARE_SANDBOX_LOCATION_ID": "LRSKVTACT68WP",
-        "EXPO_PUBLIC_SQUARE_SANDBOX_APPLICATION_ID": "sandbox-sq0idb-o8qQfJTQnrMerGHvEa_blA"
+        "EXPO_PUBLIC_SQUARE_SANDBOX_APPLICATION_ID": "sandbox-sq0idb-o8qQfJTQnrMerGHvEa_blA",
+        "EXPO_BUILD_DISABLE_MAVEN_CACHE": "1",
+        "EXPO_NO_CAPABILITY_SYNC": "1"
       },
       "autoIncrement": true
     }
