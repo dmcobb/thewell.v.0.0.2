@@ -9,7 +9,6 @@ console.log('🔴 Current dir: ' + process.cwd());
 console.log('🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴');
 console.log('');
 
-// This is where Xcode is copying from
 const frameworkPaths = [
   './ios/Pods/SquareInAppPaymentsSDK/XCFrameworks/SquareInAppPaymentsSDK.xcframework/ios-arm64/SquareInAppPaymentsSDK.framework',
   './ios/Pods/SquareBuyerVerificationSDK/XCFrameworks/SquareBuyerVerificationSDK.xcframework/ios-arm64/SquareBuyerVerificationSDK.framework'
@@ -22,13 +21,11 @@ frameworkPaths.forEach(frameworkPath => {
   console.log(`   Exists? ${fs.existsSync(fullPath)}`);
   
   if (fs.existsSync(fullPath)) {
-    // Delete setup script
+    // Delete setup script (for SquareInAppPaymentsSDK)
     const setupScript = path.join(fullPath, 'setup');
     if (fs.existsSync(setupScript)) {
       fs.unlinkSync(setupScript);
       console.log(`   ✅ Deleted setup script`);
-    } else {
-      console.log(`   ⚠️ setup script not found`);
     }
     
     // Handle nested Frameworks folder
@@ -36,20 +33,36 @@ frameworkPaths.forEach(frameworkPath => {
     if (fs.existsSync(nestedFrameworksPath)) {
       console.log(`   Found nested Frameworks folder`);
       
-      // Check for CorePaymentCard
+      // For SquareBuyerVerificationSDK, move ThreeDS_SDK up
+      const threeDSPath = path.join(nestedFrameworksPath, 'ThreeDS_SDK.framework');
+      const destinationThreeDSPath = path.join(fullPath, 'ThreeDS_SDK.framework');
+      
+      if (fs.existsSync(threeDSPath)) {
+        console.log(`   Found ThreeDS_SDK.framework in nested folder`);
+        
+        // Move ThreeDS_SDK up
+        if (fs.existsSync(destinationThreeDSPath)) {
+          fs.rmSync(destinationThreeDSPath, { recursive: true, force: true });
+        }
+        fs.renameSync(threeDSPath, destinationThreeDSPath);
+        console.log(`   ✅ Moved ThreeDS_SDK.framework to parent`);
+      }
+      
+      // Check for CorePaymentCard (for SquareInAppPaymentsSDK)
       const corePaymentCardPath = path.join(nestedFrameworksPath, 'CorePaymentCard.framework');
-      const destinationPath = path.join(fullPath, 'CorePaymentCard.framework');
+      const destinationCorePath = path.join(fullPath, 'CorePaymentCard.framework');
       
       if (fs.existsSync(corePaymentCardPath)) {
-        // Move CorePaymentCard up
-        if (fs.existsSync(destinationPath)) {
-          fs.rmSync(destinationPath, { recursive: true, force: true });
+        console.log(`   Found CorePaymentCard.framework in nested folder`);
+        
+        if (fs.existsSync(destinationCorePath)) {
+          fs.rmSync(destinationCorePath, { recursive: true, force: true });
         }
-        fs.renameSync(corePaymentCardPath, destinationPath);
+        fs.renameSync(corePaymentCardPath, destinationCorePath);
         console.log(`   ✅ Moved CorePaymentCard.framework to parent`);
       }
       
-      // Delete the now-empty Frameworks folder
+      // Now check if Frameworks folder is empty and remove it
       const remaining = fs.readdirSync(nestedFrameworksPath);
       if (remaining.length === 0) {
         fs.rmdirSync(nestedFrameworksPath);
@@ -69,6 +82,14 @@ frameworkPaths.forEach(frameworkPath => {
     }
     if (finalContents.includes('Frameworks')) {
       console.log(`   ❌ ERROR: Frameworks folder STILL PRESENT!`);
+    }
+    
+    // Check for nested frameworks at root level (they're okay here)
+    if (finalContents.includes('ThreeDS_SDK.framework')) {
+      console.log(`   ✅ ThreeDS_SDK.framework is now at root level (correct)`);
+    }
+    if (finalContents.includes('CorePaymentCard.framework')) {
+      console.log(`   ✅ CorePaymentCard.framework is now at root level (correct)`);
     }
   }
 });
