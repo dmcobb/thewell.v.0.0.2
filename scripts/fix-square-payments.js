@@ -4,13 +4,6 @@ const path = require('path');
 
 console.log('🔧 Fixing Square SDK package.json exports for EAS...');
 
-console.log('🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴');
-console.log('🔴 SQUARE PATCH SCRIPT STARTED');
-console.log('🔴 Time: ' + new Date().toISOString());
-console.log('🔴 Current directory: ' + process.cwd());
-console.log('🔴 EAS Build?: ' + (process.env.EAS_BUILD ? 'YES' : 'NO'));
-console.log('🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴');
-
 const packagePath = path.join(__dirname, '../node_modules/react-native-square-in-app-payments/package.json');
 
 try {
