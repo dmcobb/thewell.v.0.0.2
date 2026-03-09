@@ -65,7 +65,7 @@
             "minSdkVersion": 28
           },
           "ios": {
-            "deploymentTarget": "13.0",
+            "deploymentTarget": "26.0",
             "flipper": false
           }
         }
