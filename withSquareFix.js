@@ -11,22 +11,21 @@ module.exports = function withSquareFix(config) {
     );
 
     if (!alreadyExists) {
-      console.log(`🚀 [SQUARE-FIX] Adding Mandatory Apple Compliance Phase`);
+      console.log(`🚀 [SQUARE-FIX] Injecting Final Cleanup Phase`);
       
-      // This script runs AFTER the 'Embed Pods Frameworks' phase to catch the illegal files
+      // Use double-backslashes to ensure the $ stays for the Shell to read
       const script = `
         set -e
         FRAMEWORKS_DIR="\${TARGET_BUILD_DIR}/\${FRAMEWORKS_FOLDER_PATH}"
         echo "🧹 [SQUARE-FIX] Cleaning: \$FRAMEWORKS_DIR"
 
-        # 1. Delete the 'setup' files (triggers Invalid Signature error)
+        # 1. Remove setup files (fixes signature error)
         find "\$FRAMEWORKS_DIR" -name "setup" -print -delete || true
         
-        # 2. Delete nested 'Frameworks' folders (triggers Disallowed Nested Bundles error)
-        # This specifically targets SquareInAppPaymentsSDK.framework/Frameworks
+        # 2. Remove nested Frameworks (fixes disallowed bundle error)
         find "\$FRAMEWORKS_DIR" -name "Frameworks" -type d -mindepth 2 -print -exec rm -rf {} + || true
         
-        echo "✅ [SQUARE-FIX] Compliance cleanup complete."
+        echo "✅ [SQUARE-FIX] Cleanup complete."
       `;
 
       xcodeProject.addBuildPhase(
