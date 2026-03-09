@@ -1,46 +1,43 @@
-const { withProjectBuildPhase, withDangerousMod } = require('@expo/config-plugins');
-const fs = require('fs');
-const path = require('path');
-
-console.log('🚀 [SQUARE-FIX] Plugin triggered for iOS 26');
+const { withXcodeProject } = require('@expo/config-plugins');
 
 module.exports = function withSquareFix(config) {
-  return withDangerousMod(config, [
-    'ios',
-    async (config) => {
-      const podfilePath = path.join(config.modRequest.projectRoot, 'ios', 'Podfile');
-      if (!fs.existsSync(podfilePath)) return config;
+  return withXcodeProject(config, (config) => {
+    const xcodeProject = config.modResults;
+    const buildPhaseName = 'Square Bundle Cleanup';
+    
+    const buildPhases = xcodeProject.hash.project.objects.PBXShellScriptBuildPhase;
+    const alreadyExists = Object.values(buildPhases || {}).some(
+      (phase) => phase.name === `"${buildPhaseName}"` || phase.name === buildPhaseName
+    );
 
-      let content = fs.readFileSync(podfilePath, 'utf-8');
+    if (!alreadyExists) {
+      console.log(`🚀 [SQUARE-FIX] Adding Mandatory Apple Compliance Phase`);
+      
+      // This script runs AFTER the 'Embed Pods Frameworks' phase to catch the illegal files
+      const script = `
+        set -e
+        FRAMEWORKS_DIR="\${TARGET_BUILD_DIR}/\${FRAMEWORKS_FOLDER_PATH}"
+        echo "🧹 [SQUARE-FIX] Cleaning: \$FRAMEWORKS_DIR"
 
-      // The script that goes into your Podfile
-      const cleanupScript = `
-    installer.aggregate_targets.each do |aggregate_target|
-      aggregate_target.user_project.targets.each do |target|
-        next unless target.product_type.include?('application')
-        has_fix = target.shell_script_build_phases.any? { |p| p.name == 'Square Fix' }
-        if !has_fix
-          puts "🛠️ [SQUARE-FIX] INJECTING CLEANUP PHASE"
-          phase = target.new_shell_script_build_phase('Square Fix')
-          phase.shell_script = <<~EOT
-            echo "🧹 [SQUARE-FIX] Deleting illegal files..."
-            rm -v "$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH/SquareInAppPaymentsSDK.framework/setup" || true
-            find "$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH" -name "Frameworks" -type d -print -exec rm -rf {} + || true
-          EOT
-        end
-      end
-    end`;
+        # 1. Delete the 'setup' files (triggers Invalid Signature error)
+        find "\$FRAMEWORKS_DIR" -name "setup" -print -delete || true
+        
+        # 2. Delete nested 'Frameworks' folders (triggers Disallowed Nested Bundles error)
+        # This specifically targets SquareInAppPaymentsSDK.framework/Frameworks
+        find "\$FRAMEWORKS_DIR" -name "Frameworks" -type d -mindepth 2 -print -exec rm -rf {} + || true
+        
+        echo "✅ [SQUARE-FIX] Compliance cleanup complete."
+      `;
 
-      if (!content.includes('Square Fix')) {
-        // We look for the end of the post_install block and inject it there
-        content = content.replace(
-          /post_install do \|installer\|/,
-          "post_install do |installer|\n" + cleanupScript
-        );
-        fs.writeFileSync(podfilePath, content);
-        console.log('✅ [SQUARE-FIX] Podfile successfully modified.');
-      }
-      return config;
-    },
-  ]);
+      xcodeProject.addBuildPhase(
+        [], 
+        'PBXShellScriptBuildPhase', 
+        buildPhaseName, 
+        xcodeProject.getFirstTarget().uuid, 
+        { shellScript: script }
+      );
+    }
+
+    return config;
+  });
 };
