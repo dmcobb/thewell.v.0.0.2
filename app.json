@@ -2,7 +2,6 @@
   "expo": {
     "name": "The Well",
     "slug": "thewell",
-    "newArchEnabled": true,
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -66,12 +65,12 @@
             "minSdkVersion": 28
           },
           "ios": {
-            "deploymentTarget": "26.0",
-            "flipper": false,
-            "hermes": false
+            "deploymentTarget": "13.0",
+            "flipper": false
           }
         }
-      ]
+      ],
+      "./withSquareFix"
     ],
     "experiments": {
       "typedRoutes": true
