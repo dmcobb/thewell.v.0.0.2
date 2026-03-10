@@ -14,13 +14,14 @@ try {
     // Explicitly define exports so Expo/Metro can find the source and plugin
     pkg.exports = {
       '.': {
+        source: './src/index.ts',
         import: './src/index.ts',
         require: './src/index.ts',
-        types: './src/index.ts',
         default: './src/index.ts',
       },
       './package.json': './package.json',
       './app.plugin.js': './app.plugin.js',
+      './src/index.ts': './src/index.ts',
     };
     pkg.main = './src/index.ts';
     pkg.types = './src/index.ts';
