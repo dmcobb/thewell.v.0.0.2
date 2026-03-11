@@ -1,11 +1,8 @@
 const { withXcodeProject } = require('@expo/config-plugins');
-const fs = require('fs');
-const path = require('path');
 
 module.exports = function withSquareFix(config) {
   return withXcodeProject(config, async (config) => {
     const xcodeProject = config.modResults;
-    const pbxProject = xcodeProject.pbxProjectSection()[xcodeProject.getFirstProject().uuid];
     
     // Find the main app target
     const targets = xcodeProject.pbxNativeTargetSection();
@@ -19,17 +16,22 @@ module.exports = function withSquareFix(config) {
     const hasSquareFixPhase = xcodeProject.buildPhaseObject('PBXShellScriptBuildPhase', 'Square Fix', targetUuid);
     
     if (!hasSquareFixPhase) {
-      // Create the build phase
-      const phaseContent = {
-        isa: 'PBXShellScriptBuildPhase',
-        buildActionMask: 2147483647,
-        files: [],
-        inputPaths: [],
-        name: 'Square Fix',
-        outputPaths: [],
-        runOnlyForDeploymentPostprocessing: 0,
-        shellPath: '/bin/bash',
-        shellScript: `#!/bin/bash
+      // Add the build phase - this automatically adds it to the end
+      const phase = xcodeProject.addBuildPhase(
+        [],
+        'PBXShellScriptBuildPhase',
+        'Square Fix',
+        targetUuid,
+        {
+          isa: 'PBXShellScriptBuildPhase',
+          buildActionMask: 2147483647,
+          files: [],
+          inputPaths: [],
+          name: 'Square Fix',
+          outputPaths: [],
+          runOnlyForDeploymentPostprocessing: 0,
+          shellPath: '/bin/bash',
+          shellScript: `#!/bin/bash
 echo "========================================="
 echo "🔧 [SQUARE-FIX] Cleaning and Signing Square Frameworks"
 echo "========================================="
@@ -90,40 +92,33 @@ echo ""
 echo "✅ [SQUARE-FIX] Completed"
 echo "========================================="
 `
-      };
-
-      // Add the build phase
-      const phase = xcodeProject.addBuildPhase(
-        [],
-        'PBXShellScriptBuildPhase',
-        'Square Fix',
-        targetUuid,
-        phaseContent
+        }
       );
 
+      // Get the phase ID from the returned value
+      const phaseId = Array.isArray(phase) ? phase[0] : phase;
+      
       // Get all build phases for the target
-      const buildPhases = xcodeProject.buildPhasesForTarget(targetUuid);
+      const buildPhases = target.buildPhases.map(phase => phase.value);
       
       // Find the index of "Embed Frameworks" phase
-      const embedIndex = buildPhases.findIndex(phase => {
-        const phaseObj = xcodeProject.getPBXObjectByUUID(phase.value);
-        return phaseObj && phaseObj.name === 'Embed Frameworks';
+      const embedIndex = buildPhases.findIndex(phaseUuid => {
+        const phaseObj = xcodeProject.getPBXObjectByUUID(phaseUuid);
+        return phaseObj && phaseObj.isa === 'PBXCopyFilesBuildPhase' && phaseObj.name === 'Embed Frameworks';
       });
 
       // Find the index of our new phase
-      const fixIndex = buildPhases.findIndex(phase => {
-        const phaseObj = xcodeProject.getPBXObjectByUUID(phase.value);
-        return phaseObj && phaseObj.name === 'Square Fix';
-      });
+      const fixIndex = buildPhases.findIndex(phaseUuid => phaseUuid === phaseId);
 
-      if (embedIndex !== -1 && fixIndex !== -1 && fixIndex < embedIndex) {
-        // Move our phase after Embed Frameworks
-        const fixPhase = buildPhases.splice(fixIndex, 1)[0];
-        buildPhases.splice(embedIndex + 1, 0, fixPhase);
+      if (embedIndex !== -1 && fixIndex !== -1 && fixIndex > embedIndex + 1) {
+        // Remove our phase from its current position
+        buildPhases.splice(fixIndex, 1);
+        
+        // Insert it right after Embed Frameworks
+        buildPhases.splice(embedIndex + 1, 0, phaseId);
         
         // Update the target's build phases
-        const targetObj = xcodeProject.pbxNativeTargetSection()[targetUuid];
-        targetObj.buildPhases = buildPhases;
+        target.buildPhases = buildPhases.map(phaseUuid => ({ value: phaseUuid, comment: null }));
       }
     }
 
