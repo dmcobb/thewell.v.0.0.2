@@ -70,7 +70,7 @@
           }
         }
       ],
-      "./withSquareFix"
+      "./withSquareFix.js"
     ],
     "experiments": {
       "typedRoutes": true
