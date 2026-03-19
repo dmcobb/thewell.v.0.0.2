@@ -44,6 +44,7 @@ export interface UpdateProfileData {
   first_name?: string
   last_name?: string
   bio?: string
+  gender?: string
   location_city?: string
   location_state?: string
   denomination?: string
@@ -103,11 +104,11 @@ class UserService {
   async getCurrentUser(): Promise<UserProfile> {
     const response = await apiClient.get<{ success: boolean; data: UserProfile }>(API_ENDPOINTS.USERS.PROFILE)
 
-    // Pull user from AsyncStorage
-    if (response.success && response.data) {
+    if (response && response.success && response.data) {
       await AsyncStorage.setItem("user", JSON.stringify(response.data))
+      return response.data
     }
-    return response.data
+    throw new Error("Failed to fetch current user profile")
   }
 
   async updateProfile(data: UpdateProfileData): Promise<{ success: boolean; message: string; user?: UserProfile }> {
@@ -116,7 +117,7 @@ class UserService {
       data,
     )
 
-    if (response.user) {
+    if (response && response.user) {
       const userStr = await AsyncStorage.getItem("user")
       if (userStr) {
         const currentUser = JSON.parse(userStr)
@@ -125,7 +126,7 @@ class UserService {
       }
     }
 
-    return response
+    return response || { success: false, message: "Network error or invalid response" }
   }
 
   async uploadPhotos(files: any[]): Promise<Array<{ id: string; photo_url: string; is_primary: boolean }>> {
@@ -142,7 +143,8 @@ class UserService {
       success: boolean
       data: Array<{ id: string; photo_url: string; is_primary: boolean }>
     }>(API_ENDPOINTS.USERS.UPLOAD_PHOTOS, formData)
-    return response.data
+    
+    return response?.data || []
   }
 
   async uploadProfileVideo(videoFile: { uri: string; type: string; name: string }): Promise<{ video_url: string; thumbnail_url: string; duration: number }> {
@@ -157,68 +159,84 @@ class UserService {
       success: boolean
       data: { video_url: string; thumbnail_url: string; duration: number }
     }>(API_ENDPOINTS.MEDIA.UPLOAD_VIDEO, formData)
-    return response.data
+    
+    if (response && response.data) {
+      return response.data
+    }
+    throw new Error("Video upload failed")
   }
 
   async uploadAndSetPrimaryPhoto(file: any) {
-  // Pass the full asset object to our fixed uploadFile method
-  const response = await apiClient.uploadFile<{
-    success: boolean;
-    data: Array<{ id: string; photo_url: string; is_primary: boolean }>;
-  }>(API_ENDPOINTS.USERS.UPLOAD_PHOTOS, file);
+    const response = await apiClient.uploadFile<{
+      success: boolean;
+      data: Array<{ id: string; photo_url: string; is_primary: boolean }>;
+    }>(API_ENDPOINTS.USERS.UPLOAD_PHOTOS, file);
 
-  if (response.success && response.data.length > 0) {
-    const photoId = response.data[0].id;
-    await this.setPrimaryPhoto(photoId);
-    return response.data[0];
+    if (response && response.success && response.data && response.data.length > 0) {
+      const photoId = response.data[0].id;
+      await this.setPrimaryPhoto(photoId);
+      return response.data[0];
+    }
+    throw new Error("Failed to upload photo");
   }
-  throw new Error("Failed to upload photo");
-}
 
   async deletePhoto(photoId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.delete(API_ENDPOINTS.USERS.DELETE_PHOTO(photoId))
+    const response = await apiClient.delete<{ success: boolean; message: string }>(API_ENDPOINTS.USERS.DELETE_PHOTO(photoId))
+    return response || { success: false, message: "Delete operation failed" }
   }
 
   async setPrimaryPhoto(photoId: string): Promise<{ success: boolean; data: any }> {
-    return apiClient.put(API_ENDPOINTS.USERS.SET_PRIMARY_PHOTO(photoId), {})
+    const response = await apiClient.put<{ success: boolean; data: any }>(API_ENDPOINTS.USERS.SET_PRIMARY_PHOTO(photoId), {})
+    return response || { success: false, data: null }
   }
 
   async getUserById(userId: string): Promise<UserProfile> {
     const response = await apiClient.get<{ success: boolean; data: UserProfile }>(API_ENDPOINTS.USERS.GET_USER(userId))
-    return response.data
+    if (response && response.data) {
+      return response.data
+    }
+    throw new Error("User not found")
   }
 
   async submitQuestionnaire(responses: QuestionnaireResponse[]): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(API_ENDPOINTS.USERS.SUBMIT_QUESTIONNAIRE, { responses })
+    const response = await apiClient.post<{ success: boolean; message: string }>(API_ENDPOINTS.USERS.SUBMIT_QUESTIONNAIRE, { responses })
+    return response || { success: false, message: "Questionnaire submission failed" }
   }
 
   async getQuestionnaire(): Promise<QuestionnaireResponse[]> {
     const response = await apiClient.get<{ success: boolean; data: QuestionnaireResponse[] }>(
       API_ENDPOINTS.USERS.GET_QUESTIONNAIRE,
     )
-    return response.data
+    return response?.data || []
   }
 
   async updatePreferences(preferences: UserPreferences): Promise<{ success: boolean; message: string }> {
-    return apiClient.put(API_ENDPOINTS.USERS.UPDATE_PREFERENCES, preferences)
+    const response = await apiClient.put<{ success: boolean; message: string }>(API_ENDPOINTS.USERS.UPDATE_PREFERENCES, preferences)
+    return response || { success: false, message: "Preference update failed" }
   }
 
   async getPreferences(): Promise<UserPreferences> {
     const response = await apiClient.get<{ success: boolean; data: UserPreferences }>(API_ENDPOINTS.USERS.PREFERENCES)
-    return response.data
+    if (response && response.data) {
+      return response.data
+    }
+    return {}
   }
 
   async deactivateAccount(): Promise<{ success: boolean; message: string }> {
-    return apiClient.put(API_ENDPOINTS.USERS.DEACTIVATE, {})
+    const response = await apiClient.put<{ success: boolean; message: string }>(API_ENDPOINTS.USERS.DEACTIVATE, {})
+    return response || { success: false, message: "Account deactivation failed" }
   }
 
   async deleteAccount(password: string, reason?: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.delete(API_ENDPOINTS.USERS.DELETE, { password, reason })
+    const response = await apiClient.delete<{ success: boolean; message: string }>(API_ENDPOINTS.USERS.DELETE, { password, reason })
+    return response || { success: false, message: "Account deletion failed" }
   }
 
   async saveOnboardingProgress(progress: OnboardingProgress): Promise<{ success: boolean; message: string }> {
     try {
-      return await apiClient.post(API_ENDPOINTS.USERS.SAVE_ONBOARDING_PROGRESS, progress)
+      const response = await apiClient.post<{ success: boolean; message: string }>(API_ENDPOINTS.USERS.SAVE_ONBOARDING_PROGRESS, progress)
+      return response || { success: false, message: "Save operation returned no result" }
     } catch (error: any) {
       if (
         error.message?.includes("404") ||
@@ -237,7 +255,7 @@ class UserService {
       const response = await apiClient.get<{ success: boolean; data: OnboardingProgress | null }>(
         API_ENDPOINTS.USERS.GET_ONBOARDING_PROGRESS,
       )
-      return response.data
+      return response?.data || null
     } catch (error: any) {
       if (
         error.message?.includes("404") ||
@@ -254,7 +272,8 @@ class UserService {
 
   async clearOnboardingProgress(): Promise<{ success: boolean; message: string }> {
     try {
-      return await apiClient.delete(API_ENDPOINTS.USERS.SAVE_ONBOARDING_PROGRESS)
+      const response = await apiClient.delete<{ success: boolean; message: string }>(API_ENDPOINTS.USERS.SAVE_ONBOARDING_PROGRESS)
+      return response || { success: true, message: "Nothing to clear" }
     } catch (error: any) {
       if (
         error.message?.includes("404") ||

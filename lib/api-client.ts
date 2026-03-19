@@ -27,7 +27,6 @@ class ApiClient {
   }
 
   private async refreshAuthToken(): Promise<string | null> {
-    // If already refreshing, wait for that promise
     if (this.isRefreshing && this.refreshPromise) {
       return this.refreshPromise
     }
@@ -48,10 +47,9 @@ class ApiClient {
     try {
       const refreshToken = await AsyncStorage.getItem("refreshToken")
       if (!refreshToken) {
-        console.error("[Anointed Innovations] No refresh token available")
+        // Return null silently for guest mode
         return null
       }
-
 
       const response = await fetch(`${this.baseURL}${API_ENDPOINTS.AUTH.REFRESH}`, {
         method: "POST",
@@ -62,8 +60,6 @@ class ApiClient {
       })
 
       if (!response.ok) {
-        console.error("[Anointed Innovations] Token refresh failed:", response.status)
-        // Clear tokens if refresh fails
         await AsyncStorage.removeItem("authToken")
         await AsyncStorage.removeItem("refreshToken")
         await AsyncStorage.removeItem("user")
@@ -103,13 +99,13 @@ class ApiClient {
     } catch (error: any) {
       clearTimeout(timeoutId)
       if (error.name === "AbortError") {
-        throw new Error("Request timeout - please check your network connection and backend server")
+        throw new Error("Request timeout - please check your network connection")
       }
       throw error
     }
   }
 
-  private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T | null> {
     const {
       requiresAuth = true,
       timeout = this.defaultTimeout,
@@ -128,7 +124,8 @@ class ApiClient {
       if (token) {
         requestHeaders["Authorization"] = `Bearer ${token}`
       } else {
-        console.warn("[Anointed Innovations] No auth token found for authenticated request")
+        // If we need auth but have no token, return null so services can handle guest state
+        return null
       }
     }
 
@@ -144,66 +141,40 @@ class ApiClient {
         timeout,
       )
 
-
       if (response.status === 401 && requiresAuth && !_isRetry) {
         const newToken = await this.refreshAuthToken()
 
         if (newToken) {
-          // Retry the request with the new token
           return this.request<T>(endpoint, { ...options, _isRetry: true })
         } else {
-          console.error("[Anointed Innovations] Token refresh failed, user needs to login again")
-          throw new Error("Session expired. Please login again.")
+          return null // Auth failed, treat as guest
         }
       }
 
-
       const contentType = response.headers.get("content-type")
-
       if (contentType && !contentType.includes("application/json")) {
-        const textError = await response.text()
-        console.error(`[Anointed Innovations] Non-JSON response from ${endpoint}:`, textError.substring(0, 200))
-        throw new Error(`Server returned ${response.status}: ${response.statusText}. Check if the endpoint exists.`)
+        return null
       }
 
       const data = await response.json()
 
       if (!response.ok) {
-        // Check if it's a validation error with field-specific messages
-        if (data.error && typeof data.error === "object") {
-          const fieldErrors = Object.entries(data.error)
-            .map(([field, msg]) => `${field}: ${msg}`)
-            .join(", ")
-          const errorMessage = `${data.message || "Validation failed"} - ${fieldErrors}`
-          console.error(`[Anointed Innovations] API Error [${response.status}] at ${endpoint}:`, data)
-          throw new Error(errorMessage)
-        }
-
-        const errorMessage = data.message || data.error || `Request failed with status ${response.status}`
-        console.error(`[Anointed Innovations] API Error [${response.status}] at ${endpoint}:`, data)
-        throw new Error(errorMessage)
+        // If it's a 404 or other error during init, return null to avoid blocking UI
+        return null
       }
 
-      return data
+      return data as T
     } catch (error: any) {
-      // Re-throw if it's already an Error object we created
-      if (error.message && !error.message.includes("Unexpected token")) {
-        throw error
-      }
-
-      console.error("[Anointed Innovations] Critical API failure:", {
-        url: fullUrl,
-        message: error.message,
-      })
-      throw new Error(`Connection error: ${error.message}`)
+      console.error("[Anointed Innovations] API failure:", error.message)
+      return null
     }
   }
 
-  async get<T>(endpoint: string, options?: RequestOptions): Promise<T> {
+  async get<T>(endpoint: string, options?: RequestOptions): Promise<T | null> {
     return this.request<T>(endpoint, { ...options, method: "GET" })
   }
 
-  async post<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T> {
+  async post<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T | null> {
     return this.request<T>(endpoint, {
       ...options,
       method: "POST",
@@ -211,7 +182,7 @@ class ApiClient {
     })
   }
 
-  async put<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T> {
+  async put<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T | null> {
     return this.request<T>(endpoint, {
       ...options,
       method: "PUT",
@@ -219,7 +190,7 @@ class ApiClient {
     })
   }
 
-  async patch<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T> {
+  async patch<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T | null> {
     return this.request<T>(endpoint, {
       ...options,
       method: "PATCH",
@@ -227,7 +198,7 @@ class ApiClient {
     })
   }
 
-  async delete<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T> {
+  async delete<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T | null> {
     return this.request<T>(endpoint, {
       ...options,
       method: "DELETE",
@@ -235,35 +206,34 @@ class ApiClient {
     })
   }
 
-  async uploadFile<T>(endpoint: string, file: any, options?: RequestOptions): Promise<T> {
-  const token = await this.getAuthToken();
-  const formData = new FormData();
+  async uploadFile<T>(endpoint: string, file: any, options?: RequestOptions): Promise<T | null> {
+    const token = await this.getAuthToken();
+    const formData = new FormData();
 
-  // FIX 1: Use "photos" to match your backend route: uploadPhotos.array("photos", 5)
-  // FIX 2: Map properties from the ImagePickerAsset object
-  formData.append("photos", {
-    uri: file.uri,
-    name: file.fileName || 'upload.png', // asset.fileName from docs
-    type: file.mimeType || 'image/png',  // asset.mimeType from docs
-  } as any);
+    formData.append("photos", {
+      uri: file.uri,
+      name: file.fileName || 'upload.png',
+      type: file.mimeType || 'image/png',
+    } as any);
 
-  const requestHeaders: Record<string, string> = {};
-  if (token) {
-    requestHeaders["Authorization"] = `Bearer ${token}`;
+    const requestHeaders: Record<string, string> = {};
+    if (token) {
+      requestHeaders["Authorization"] = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(`${this.baseURL}${endpoint}`, {
+        method: "POST",
+        headers: requestHeaders,
+        body: formData,
+      });
+
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (e) {
+      return null;
+    }
   }
-
-  // IMPORTANT: Do NOT set Content-Type manually. 
-  // Fetch will automatically set it with the correct "boundary".
-  const response = await fetch(`${this.baseURL}${endpoint}`, {
-    method: "POST",
-    headers: requestHeaders,
-    body: formData,
-  });
-
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.message || "Upload failed");
-  return data;
-}
 }
 
 export const apiClient = new ApiClient(API_BASE_URL)

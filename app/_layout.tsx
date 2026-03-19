@@ -8,6 +8,16 @@ import { NotificationContainer } from '@/components/notification-container';
 import { GlobalHeader } from '@/components/global-header';
 import { View } from 'react-native';
 
+// Add global error handler
+if (__DEV__) {
+  const errorHandler = (error: Error, isFatal?: boolean) => {
+    console.log('Global Error Caught:', error);
+    console.log('Stack:', error.stack);
+  };
+
+  ErrorUtils.setGlobalHandler(errorHandler);
+}
+
 function RootLayoutContent() {
   const pathname = usePathname();
   const segments = useSegments();

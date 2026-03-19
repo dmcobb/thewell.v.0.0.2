@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from "react-native"
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from "react-native"
 import { useRouter } from "expo-router"
 import { LinearGradient } from "expo-linear-gradient"
 import { useAuth } from "../../contexts/auth-context"
@@ -22,7 +22,7 @@ export default function LoginScreen() {
     setIsLoading(true)
     try {
       await login(email.toLowerCase().trim(), password)
-      // Navigation handled by AuthContext
+      // Navigation is handled by the useEffect in AuthContext
     } catch (error: any) {
       Alert.alert("Login Failed", error.message || "Invalid email or password")
     } finally {
@@ -31,52 +31,90 @@ export default function LoginScreen() {
   }
 
   return (
-    <LinearGradient colors={["#E0F2FE", "#F0F9FF"]} className="flex-1">
-      <ScrollView className="flex-1" contentContainerClassName="px-6 py-12">
+    <LinearGradient colors={["#F8FAFC", "#E0F2FE"]} style={{ flex: 1 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 60 }}>
+        
         {/* Header */}
-        <TouchableOpacity onPress={() => router.back()} className="mb-8">
+        <TouchableOpacity 
+          onPress={() => router.back()} 
+          style={{ marginBottom: 32, width: 40, height: 40, justifyContent: 'center' }}
+        >
           <Ionicons name="arrow-back" size={28} color="#0891B2" />
         </TouchableOpacity>
 
-        <View className="mb-8">
-          <Text className="text-3xl font-bold text-foreground mb-2">Welcome Back</Text>
-          <Text className="text-base text-muted-foreground">Sign in to continue your journey</Text>
+        <View style={{ marginBottom: 32 }}>
+          <Text style={{ fontSize: 30, fontWeight: 'bold', color: '#1E293B', marginBottom: 8 }}>
+            Welcome Back
+          </Text>
+          <Text style={{ fontSize: 16, color: '#64748B' }}>
+            Sign in to continue your journey
+          </Text>
         </View>
 
         {/* Form */}
-        <View className="gap-4 mb-6">
+        <View style={{ gap: 20, marginBottom: 24 }}>
           <View>
-            <Text className="text-sm font-medium text-foreground mb-2">Email</Text>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#475569', marginBottom: 8 }}>
+              Email
+            </Text>
             <TextInput
               value={email}
               onChangeText={setEmail}
               placeholder="your.email@example.com"
+              placeholderTextColor="#94A3B8"
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
-              className="bg-card border border-input rounded-xl px-4 py-3 text-base text-foreground"
+              style={{
+                backgroundColor: 'white',
+                borderWidth: 1,
+                borderColor: '#CBD5E1',
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                fontSize: 16,
+                color: '#1E293B'
+              }}
             />
           </View>
 
           <View>
-            <Text className="text-sm font-medium text-foreground mb-2">Password</Text>
-            <View className="relative">
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#475569', marginBottom: 8 }}>
+              Password
+            </Text>
+            <View style={{ position: 'relative' }}>
               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Enter your password"
+                placeholderTextColor="#94A3B8"
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
-                className="bg-card border border-input rounded-xl px-4 py-3 text-base text-foreground pr-12"
+                style={{
+                  backgroundColor: 'white',
+                  borderWidth: 1,
+                  borderColor: '#CBD5E1',
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  fontSize: 16,
+                  color: '#1E293B',
+                  paddingRight: 50
+                }}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="absolute right-4 top-3">
+              <TouchableOpacity 
+                onPress={() => setShowPassword(!showPassword)} 
+                style={{ position: 'absolute', right: 16, top: 14 }}
+              >
                 <Ionicons name={showPassword ? "eye-off" : "eye"} size={24} color="#64748B" />
               </TouchableOpacity>
             </View>
           </View>
 
           <TouchableOpacity onPress={() => router.push("/auth/forgot-password")}>
-            <Text className="text-primary text-sm font-medium text-right">Forgot Password?</Text>
+            <Text style={{ color: '#0891B2', fontSize: 14, fontWeight: '600', textAlign: 'right' }}>
+              Forgot Password?
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -84,18 +122,34 @@ export default function LoginScreen() {
         <TouchableOpacity
           onPress={handleLogin}
           disabled={isLoading}
-          className={`bg-secondary rounded-xl py-4 px-6 shadow-lg mb-6 ${isLoading ? "opacity-50" : ""}`}
+          style={{
+            backgroundColor: '#9B7EDE', // Matching your splash screen purple
+            borderRadius: 12,
+            paddingVertical: 16,
+            paddingHorizontal: 24,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+            marginBottom: 24,
+            opacity: isLoading ? 0.6 : 1,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
         >
-          <Text className="text-primary-foreground text-center text-lg font-semibold">
+          {isLoading && <ActivityIndicator color="white" style={{ marginRight: 10 }} />}
+          <Text style={{ color: 'white', textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
             {isLoading ? "Signing In..." : "Sign In"}
           </Text>
         </TouchableOpacity>
 
         {/* Sign Up Link */}
-        <View className="flex-row justify-center items-center">
-          <Text className="text-muted-foreground">Don't have an account? </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: '#64748B' }}>Don't have an account? </Text>
           <TouchableOpacity onPress={() => router.push("/auth/signup")}>
-            <Text className="text-primary font-semibold">Sign Up</Text>
+            <Text style={{ color: '#9B7EDE', fontWeight: 'bold' }}>Sign Up</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

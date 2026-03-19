@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from "react-native"
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from "react-native"
 import { useRouter } from "expo-router"
 import { LinearGradient } from "expo-linear-gradient"
 import { Ionicons } from "@expo/vector-icons"
@@ -21,6 +21,7 @@ export default function ForgotPasswordScreen() {
     try {
       await authService.forgotPassword(email.toLowerCase().trim())
       setEmailSent(true)
+      // We keep the alert for clear feedback on Android/iOS
       Alert.alert("Success", "Password reset instructions have been sent to your email")
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to send reset email")
@@ -29,56 +30,112 @@ export default function ForgotPasswordScreen() {
     }
   }
 
+  // Common styles to ensure consistency
+  const inputStyle = {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#1E293B'
+  }
+
+  const primaryButtonStyle = {
+    backgroundColor: '#9B7EDE', // Purple from splash
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row' as const,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  }
+
   return (
-    <LinearGradient colors={["#E0F2FE", "#F0F9FF"]} className="flex-1">
-      <ScrollView className="flex-1" contentContainerClassName="px-6 py-12">
-        <TouchableOpacity onPress={() => router.back()} className="mb-8">
+    <LinearGradient colors={["#F8FAFC", "#E0F2FE"]} style={{ flex: 1 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 60 }}>
+        
+        {/* Back Button */}
+        <TouchableOpacity 
+          onPress={() => router.back()} 
+          style={{ marginBottom: 32, width: 40, height: 40, justifyContent: 'center' }}
+        >
           <Ionicons name="arrow-back" size={28} color="#0891B2" />
         </TouchableOpacity>
 
-        <View className="mb-8">
-          <Text className="text-3xl font-bold text-foreground mb-2">Forgot Password?</Text>
-          <Text className="text-base text-muted-foreground">
+        <View style={{ marginBottom: 32 }}>
+          <Text style={{ fontSize: 30, fontWeight: 'bold', color: '#1E293B', marginBottom: 8 }}>
+            Forgot Password?
+          </Text>
+          <Text style={{ fontSize: 16, color: '#64748B', lineHeight: 22 }}>
             Enter your email and we'll send you instructions to reset your password
           </Text>
         </View>
 
         {!emailSent ? (
           <>
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-foreground mb-2">Email</Text>
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#475569', marginBottom: 8 }}>
+                Email Address
+              </Text>
               <TextInput
                 value={email}
                 onChangeText={setEmail}
                 placeholder="your.email@example.com"
+                placeholderTextColor="#94A3B8"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
-                className="bg-card border border-input rounded-xl px-4 py-3 text-base text-foreground"
+                style={inputStyle}
               />
             </View>
 
             <TouchableOpacity
               onPress={handleResetPassword}
               disabled={isLoading}
-              className={`bg-primary rounded-xl py-4 px-6 shadow-lg ${isLoading ? "opacity-50" : ""}`}
+              style={[primaryButtonStyle, { opacity: isLoading ? 0.6 : 1 }]}
             >
-              <Text className="text-primary-foreground text-center text-lg font-semibold">
+              {isLoading && <ActivityIndicator color="white" style={{ marginRight: 10 }} />}
+              <Text style={{ color: 'white', textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
                 {isLoading ? "Sending..." : "Send Reset Link"}
               </Text>
             </TouchableOpacity>
           </>
         ) : (
-          <View className="items-center py-8">
-            <View className="bg-primary/10 rounded-full p-6 mb-6">
-              <Ionicons name="mail" size={60} color="#0891B2" />
+          <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+            <View style={{ backgroundColor: '#E0F2FE', borderRadius: 50, padding: 24, marginBottom: 24 }}>
+              <Ionicons name="mail-open" size={60} color="#0891B2" />
             </View>
-            <Text className="text-xl font-semibold text-foreground mb-2 text-center">Check Your Email</Text>
-            <Text className="text-base text-muted-foreground text-center mb-8">
-              We've sent password reset instructions to {email}
+            
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#1E293B', marginBottom: 12, textAlign: 'center' }}>
+              Check Your Email
             </Text>
-            <TouchableOpacity onPress={() => router.push("/auth/login")} className="bg-primary rounded-xl py-4 px-6">
-              <Text className="text-primary-foreground text-center text-lg font-semibold">Back to Login</Text>
+            
+            <Text style={{ fontSize: 16, color: '#64748B', textAlign: 'center', marginBottom: 32, lineHeight: 24 }}>
+              We've sent password reset instructions to{"\n"}
+              <Text style={{ fontWeight: 'bold', color: '#1E293B' }}>{email}</Text>
+            </Text>
+            
+            <TouchableOpacity 
+              onPress={() => router.push("/auth/login")} 
+              style={[primaryButtonStyle, { width: '100%' }]}
+            >
+              <Text style={{ color: 'white', textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
+                Back to Login
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              onPress={() => setEmailSent(false)} 
+              style={{ marginTop: 20 }}
+            >
+              <Text style={{ color: '#0891B2', fontWeight: '600' }}>Try a different email</Text>
             </TouchableOpacity>
           </View>
         )}

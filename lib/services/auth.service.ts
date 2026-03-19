@@ -90,6 +90,7 @@ class AuthService {
       requiresAuth: false,
     })
 
+    if (!backendResponse) throw new Error("Login failed")
     const response = this.transformAuthResponse(backendResponse)
 
     if (response.token) {
@@ -106,6 +107,7 @@ class AuthService {
       requiresAuth: false,
     })
 
+    if (!backendResponse) throw new Error("Registration failed")
     const response = this.transformAuthResponse(backendResponse)
 
     if (response.token) {
@@ -131,8 +133,22 @@ class AuthService {
 
   async getCurrentUser() {
     try {
+      // 1. Check if a token exists before calling the backend
+      const token = await AsyncStorage.getItem("authToken")
+      
+      // If no token exists (Fresh install / Initial mount), return null immediately
+      if (!token) {
+        return null
+      }
+
+      // 2. Only attempt to fetch profile if we have a token
       const response = await apiClient.get<{ success: boolean; data: any }>(API_ENDPOINTS.USERS.PROFILE)
-      // Keep the full user data with photos included
+      
+      // Guard against null response or invalid session
+      if (!response || !response.data) {
+        return null
+      }
+
       const user = response.data
       const transformedUser = {
         id: user.id,
@@ -157,9 +173,8 @@ class AuthService {
       return transformedUser
     } catch (error) {
       console.error("[Anointed Innovations] Error fetching current user from backend:", error)
-      // Fallback to AsyncStorage if backend fails
-      const userStr = await AsyncStorage.getItem("user")
-      return userStr ? JSON.parse(userStr) : null
+      // Fallback to null on error to ensure app moves to Guest state
+      return null
     }
   }
 
@@ -169,11 +184,11 @@ class AuthService {
   }
 
   async verifyEmail(token: string): Promise<{ success: boolean }> {
-    return apiClient.post(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { token }, { requiresAuth: false })
+    return apiClient.post(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { token }, { requiresAuth: false }) as any
   }
 
   async forgotPassword(email: string): Promise<{ success: boolean }> {
-    return apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email }, { requiresAuth: false })
+    return apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email }, { requiresAuth: false }) as any
   }
 
   async resetPassword(token: string, newPassword: string): Promise<{ success: boolean }> {
@@ -183,7 +198,7 @@ class AuthService {
         { token, password: newPassword },
         { requiresAuth: false },
       )
-      return result
+      return result as any
     } catch (error) {
       console.error("[Anointed Innovations] API call failed:", error)
       throw error
@@ -215,10 +230,10 @@ class AuthService {
 
   async syncUserFromBackend(): Promise<AuthResponse["user"] | null> {
     try {
-      const { userService } = await import("./user.service")
-      const userProfile = await userService.getCurrentUser()
+      const response = await apiClient.get<{ success: boolean; data: any }>(API_ENDPOINTS.USERS.PROFILE)
+      if (!response || !response.data) return null;
 
-      const frontendUser = this.transformUserProfile(userProfile)
+      const frontendUser = this.transformUserProfile(response.data)
 
       await AsyncStorage.setItem("user", JSON.stringify(frontendUser))
       return frontendUser

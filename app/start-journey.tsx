@@ -10,6 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LogOut } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons'; // Added for the tooltip icon
 import { userService } from '../lib/services/user.service';
 import { useAuth } from '../contexts/auth-context';
 import { EquallyYokedQuestionnaire } from '../components/equally-yoked-questionnaire';
@@ -162,7 +163,7 @@ export default function StartJourneyScreen() {
   const handleQuestionnaireComplete = useCallback(
     async (responses: QuestionnaireResponse[]) => {
       setQuestionnaireResponses(responses);
-      setStep(4);
+      setStep(3); // Fixed: Sequence should go to Preferences (3) before Final (4)
       await saveOnboardingProgress();
     },
     [],
@@ -381,7 +382,20 @@ export default function StartJourneyScreen() {
         )}
 
         {step === 2 && (
-          <EquallyYokedQuestionnaire onComplete={handleQuestionnaireComplete} />
+          <View>
+            {/* Tooltip for Older Generation */}
+            <View style={{ backgroundColor: '#F0F9FF', borderWidth: 1, borderColor: '#BAE6FD', borderRadius: 12, padding: 16, marginBottom: 20, flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="information-circle" size={24} color="#0369A1" style={{ marginRight: 12 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#0369A1', fontWeight: 'bold', fontSize: 14 }}>Quick Tip:</Text>
+                <Text style={{ color: '#0369A1', fontSize: 14, lineHeight: 20 }}>
+                  Tap the option that fits you best. The box will turn <Text style={{ fontWeight: 'bold', color: '#9B7EDE' }}>Purple</Text> to show it's selected.
+                </Text>
+              </View>
+            </View>
+            
+            <EquallyYokedQuestionnaire onComplete={handleQuestionnaireComplete} />
+          </View>
         )}
 
         {step === 3 && (

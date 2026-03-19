@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, Modal } from "react-native"
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, Modal, ActivityIndicator } from "react-native"
 import { useRouter } from "expo-router"
 import { LinearGradient } from "expo-linear-gradient"
 import { useAuth } from "../../contexts/auth-context"
@@ -23,17 +23,13 @@ export default function SignupScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Production-ready age calculation that accounts for month and day
   const calculateAge = (birthDate: Date): number => {
     const today = new Date()
     let age = today.getFullYear() - birthDate.getFullYear()
     const monthDiff = today.getMonth() - birthDate.getMonth()
-    
-    // If birthday hasn't occurred yet this year, subtract 1
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--
     }
-    
     return age
   }
 
@@ -47,32 +43,22 @@ export default function SignupScreen() {
   }
 
   const handleSignup = async () => {
-    // Validation
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.gender) {
       Alert.alert("Error", "Please fill in all fields")
       return
     }
-
     if (formData.password !== formData.confirmPassword) {
       Alert.alert("Error", "Passwords do not match")
       return
     }
-
     if (formData.password.length < 8) {
       Alert.alert("Error", "Password must be at least 8 characters")
       return
     }
 
-    // Production-ready age check (must be 18+)
     const age = calculateAge(formData.dateOfBirth)
     if (age < 18) {
-      Alert.alert("Age Requirement", "You must be at least 18 years old to create an account on The Well.")
-      return
-    }
-
-    // Additional validation: reasonable age range (18-120)
-    if (age > 120) {
-      Alert.alert("Invalid Date", "Please enter a valid date of birth.")
+      Alert.alert("Age Requirement", "You must be at least 18 years old to create an account.")
       return
     }
 
@@ -83,217 +69,227 @@ export default function SignupScreen() {
         lastName: formData.lastName.trim(),
         email: formData.email.toLowerCase().trim(),
         password: formData.password,
-        dateOfBirth: formData.dateOfBirth.toISOString().split("T")[0], // YYYY-MM-DD format
-        gender: formData.gender as "male" | "female", // Type assertion for enum
+        dateOfBirth: formData.dateOfBirth.toISOString().split("T")[0],
+        gender: formData.gender as "male" | "female",
       })
-      // Navigation handled by AuthContext
     } catch (error: any) {
-      Alert.alert("Signup Failed", error.message || "Unable to create account. Please try again.")
+      Alert.alert("Signup Failed", error.message || "Unable to create account.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Calculate minimum date (must be at least 18 years old)
   const maxDate = new Date()
   maxDate.setFullYear(maxDate.getFullYear() - 18)
-
-  // Calculate maximum date (reasonable limit of 120 years)
   const minDate = new Date()
   minDate.setFullYear(minDate.getFullYear() - 120)
 
+  const inputStyle = {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1E293B'
+  }
+
+  const labelStyle = {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#475569',
+    marginBottom: 6
+  }
+
   return (
-    <LinearGradient colors={["#E0F2FE", "#F0F9FF"]} className="flex-1">
-      <ScrollView className="flex-1" contentContainerClassName="px-6 py-12">
-        {/* Header */}
-        <TouchableOpacity onPress={() => router.back()} className="mb-8">
+    <LinearGradient colors={["#F8FAFC", "#E0F2FE"]} style={{ flex: 1 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 60 }}>
+        
+        <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 24 }}>
           <Ionicons name="arrow-back" size={28} color="#0891B2" />
         </TouchableOpacity>
 
-        <View className="mb-8">
-          <Text className="text-3xl font-bold text-foreground mb-2">Create Account</Text>
-          <Text className="text-base text-muted-foreground">Begin your journey to find your equally yoked partner</Text>
+        <View style={{ marginBottom: 32 }}>
+          <Text style={{ fontSize: 30, fontWeight: 'bold', color: '#1E293B', marginBottom: 8 }}>Create Account</Text>
+          <Text style={{ fontSize: 16, color: '#64748B' }}>Begin your journey to find your partner</Text>
         </View>
 
-        {/* Form */}
-        <View className="gap-4 mb-6">
-          <View className="flex-row gap-4">
-            <View className="flex-1">
-              <Text className="text-sm font-medium text-foreground mb-2">First Name</Text>
+        <View style={{ gap: 16, marginBottom: 32 }}>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={labelStyle}>First Name</Text>
               <TextInput
                 value={formData.firstName}
                 onChangeText={(text) => setFormData({ ...formData, firstName: text })}
                 placeholder="John"
-                autoCapitalize="words"
-                className="bg-card border border-input rounded-xl px-4 py-3 text-base text-foreground"
+                placeholderTextColor="#94A3B8"
+                style={inputStyle}
               />
             </View>
-            <View className="flex-1">
-              <Text className="text-sm font-medium text-foreground mb-2">Last Name</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={labelStyle}>Last Name</Text>
               <TextInput
                 value={formData.lastName}
                 onChangeText={(text) => setFormData({ ...formData, lastName: text })}
                 placeholder="Doe"
-                autoCapitalize="words"
-                className="bg-card border border-input rounded-xl px-4 py-3 text-base text-foreground"
+                placeholderTextColor="#94A3B8"
+                style={inputStyle}
               />
             </View>
           </View>
 
           <View>
-            <Text className="text-sm font-medium text-foreground mb-2">Email</Text>
+            <Text style={labelStyle}>Email</Text>
             <TextInput
               value={formData.email}
               onChangeText={(text) => setFormData({ ...formData, email: text })}
               placeholder="your.email@example.com"
+              placeholderTextColor="#94A3B8"
               keyboardType="email-address"
               autoCapitalize="none"
-              autoComplete="email"
-              className="bg-card border border-input rounded-xl px-4 py-3 text-base text-foreground"
+              style={inputStyle}
             />
           </View>
 
           <View>
-            <Text className="text-sm font-medium text-foreground mb-2">Date of Birth</Text>
-            <TouchableOpacity
-              onPress={() => setShowDatePicker(true)}
-              className="bg-card border border-input rounded-xl px-4 py-3"
-            >
-              <Text className="text-base text-foreground">
+            <Text style={labelStyle}>Date of Birth</Text>
+            <TouchableOpacity onPress={() => setShowDatePicker(true)} style={inputStyle}>
+              <Text style={{ color: '#1E293B', fontSize: 16 }}>
                 {formData.dateOfBirth.toLocaleDateString("en-US", {
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
+                  month: "long", day: "numeric", year: "numeric",
                 })}
               </Text>
             </TouchableOpacity>
-            <Text className="text-xs text-muted-foreground mt-1">You must be at least 18 years old</Text>
           </View>
 
-          {/* iOS Date Picker Modal */}
-          {Platform.OS === "ios" ? (
-            <Modal visible={showDatePicker} transparent animationType="slide">
-              <View className="flex-1 justify-end bg-black/50">
-                <View className="bg-card rounded-t-3xl p-4">
-                  <View className="flex-row justify-between items-center mb-4">
-                    <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                      <Text className="text-primary font-medium">Cancel</Text>
-                    </TouchableOpacity>
-                    <Text className="text-foreground font-semibold">Select Date of Birth</Text>
-                    <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                      <Text className="text-primary font-medium">Done</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <DateTimePicker
-                    value={formData.dateOfBirth}
-                    mode="date"
-                    display="spinner"
-                    onChange={handleDateChange}
-                    maximumDate={maxDate}
-                    minimumDate={minDate}
-                  />
-                </View>
-              </View>
-            </Modal>
-          ) : (
-            showDatePicker && (
-              <DateTimePicker
-                value={formData.dateOfBirth}
-                mode="date"
-                display="default"
-                onChange={handleDateChange}
-                maximumDate={maxDate}
-                minimumDate={minDate}
-              />
-            )
-          )}
-
           <View>
-            <Text className="text-sm font-medium text-foreground mb-2">Gender</Text>
-            <View className="flex-row gap-4">
-              <TouchableOpacity
-                onPress={() => setFormData({ ...formData, gender: "male" })}
-                className={`flex-1 border-2 rounded-xl py-3 px-4 ${
-                  formData.gender === "male" ? "border-primary bg-primary/10" : "border-input bg-card"
-                }`}
-              >
-                <Text
-                  className={`text-center font-medium ${formData.gender === "male" ? "text-primary" : "text-foreground"}`}
+            <Text style={labelStyle}>Gender</Text>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              {["male", "female"].map((g) => (
+                <TouchableOpacity
+                  key={g}
+                  onPress={() => setFormData({ ...formData, gender: g })}
+                  style={{
+                    flex: 1,
+                    borderWidth: 2,
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    backgroundColor: formData.gender === g ? '#F0E7FF' : 'white',
+                    borderColor: formData.gender === g ? '#9B7EDE' : '#CBD5E1',
+                  }}
                 >
-                  Male
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setFormData({ ...formData, gender: "female" })}
-                className={`flex-1 border-2 rounded-xl py-3 px-4 ${
-                  formData.gender === "female" ? "border-primary bg-primary/10" : "border-input bg-card"
-                }`}
-              >
-                <Text
-                  className={`text-center font-medium ${formData.gender === "female" ? "text-primary" : "text-foreground"}`}
-                >
-                  Female
-                </Text>
-              </TouchableOpacity>
+                  <Text style={{
+                    textAlign: 'center',
+                    fontWeight: 'bold',
+                    color: formData.gender === g ? '#9B7EDE' : '#64748B',
+                    textTransform: 'capitalize'
+                  }}>
+                    {g}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 
           <View>
-            <Text className="text-sm font-medium text-foreground mb-2">Password</Text>
-            <View className="relative">
+            <Text style={labelStyle}>Password</Text>
+            <View style={{ position: 'relative' }}>
               <TextInput
                 value={formData.password}
                 onChangeText={(text) => setFormData({ ...formData, password: text })}
                 placeholder="At least 8 characters"
+                placeholderTextColor="#94A3B8"
                 secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                className="bg-card border border-input rounded-xl px-4 py-3 text-base text-foreground pr-12"
+                style={[inputStyle, { paddingRight: 50 }]}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="absolute right-4 top-3">
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 16, top: 12 }}>
                 <Ionicons name={showPassword ? "eye-off" : "eye"} size={24} color="#64748B" />
               </TouchableOpacity>
             </View>
           </View>
 
           <View>
-            <Text className="text-sm font-medium text-foreground mb-2">Confirm Password</Text>
-            <View className="relative">
+            <Text style={labelStyle}>Confirm Password</Text>
+            <View style={{ position: 'relative' }}>
               <TextInput
                 value={formData.confirmPassword}
                 onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
-                placeholder="Re-enter your password"
+                placeholder="Re-enter password"
+                placeholderTextColor="#94A3B8"
                 secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-                className="bg-card border border-input rounded-xl px-4 py-3 text-base text-foreground pr-12"
+                style={[inputStyle, { paddingRight: 50 }]}
               />
-              <TouchableOpacity
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-4 top-3"
-              >
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: 'absolute', right: 16, top: 12 }}>
                 <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={24} color="#64748B" />
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        {/* Signup Button */}
         <TouchableOpacity
           onPress={handleSignup}
           disabled={isLoading}
-          className={`bg-white rounded-xl py-4 px-6 shadow-lg mb-6 ${isLoading ? "opacity-50" : ""}`}
+          style={{
+            backgroundColor: '#9B7EDE',
+            borderRadius: 12,
+            paddingVertical: 16,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 24,
+            opacity: isLoading ? 0.7 : 1
+          }}
         >
-          <Text className="text-purple-700 text-center text-lg font-semibold">
+          {isLoading && <ActivityIndicator color="white" style={{ marginRight: 8 }} />}
+          <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>
             {isLoading ? "Creating Account..." : "Create Account"}
           </Text>
         </TouchableOpacity>
 
-        {/* Login Link */}
-        <View className="flex-row justify-center items-center mb-8">
-          <Text className="text-muted-foreground">Already have an account? </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 40 }}>
+          <Text style={{ color: '#64748B' }}>Already have an account? </Text>
           <TouchableOpacity onPress={() => router.push("/auth/login")}>
-            <Text className="text-primary font-semibold">Sign In</Text>
+            <Text style={{ color: '#9B7EDE', fontWeight: 'bold' }}>Sign In</Text>
           </TouchableOpacity>
         </View>
+
+        {/* iOS Date Picker Modal */}
+        {Platform.OS === "ios" && (
+          <Modal visible={showDatePicker} transparent animationType="fade">
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+              <View style={{ backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={{ color: '#9B7EDE', fontWeight: 'bold' }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={{ color: '#9B7EDE', fontWeight: 'bold' }}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={formData.dateOfBirth}
+                  mode="date"
+                  display="spinner"
+                  onChange={handleDateChange}
+                  maximumDate={maxDate}
+                  minimumDate={minDate}
+                />
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {Platform.OS === "android" && showDatePicker && (
+          <DateTimePicker
+            value={formData.dateOfBirth}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+            maximumDate={maxDate}
+            minimumDate={minDate}
+          />
+        )}
       </ScrollView>
     </LinearGradient>
   )

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { View, Text, TouchableOpacity } from "react-native"
+import { View, Text, TouchableOpacity, Dimensions } from "react-native"
 import { useRouter } from "expo-router"
 import { LinearGradient } from "expo-linear-gradient"
 import { Ionicons } from "@expo/vector-icons"
@@ -36,6 +36,16 @@ export default function OnboardingScreen() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
 
+  // BRAND COLORS Mapped from your Tailwind Config
+  const colors = {
+    primary: "#9B7EDE",    // Brand Purple
+    secondary: "#2C5F7F",  // Brand Ocean
+    textMain: "#1E293B",   // Slate 800 (Foreground)
+    textMuted: "#64748B",  // Slate 500 (Muted)
+    ocean100: "#E0F2FE",   // Gradient Start
+    purple50: "#F3E8FF",   // Gradient End
+  }
+
   const handleNext = () => {
     if (currentStep < onboardingSteps.length - 1) {
       setCurrentStep(currentStep + 1)
@@ -51,38 +61,83 @@ export default function OnboardingScreen() {
   const step = onboardingSteps[currentStep]
 
   return (
-    <LinearGradient colors={["#E0F2FE", "#F0F9FF", "#F3E8FF"]} className="flex-1">
-      <View className="flex-1 px-6 py-12">
-        {/* Skip Button */}
-        <View className="flex-row justify-end mb-8">
+    <LinearGradient 
+      colors={[colors.ocean100, "#F0F9FF", colors.purple50]} 
+      style={{ flex: 1 }}
+    >
+      <View style={{ flex: 1, paddingHorizontal: 24, paddingVertical: 60 }}>
+        
+        {/* Skip Button - Using Secondary Brand Color */}
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 20 }}>
           <TouchableOpacity onPress={handleSkip}>
-            <Text className="text-primary font-semibold text-base">Skip</Text>
+            <Text style={{ color: colors.secondary, fontWeight: '700', fontSize: 16 }}>Skip</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Content */}
-        <View className="flex-1 justify-center items-center">
-          <View className="bg-primary/10 rounded-full p-8 mb-8">
-            <Ionicons name={step.icon} size={80} color="#0891B2" />
+        {/* Content Section */}
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          {/* Icon Container with 10% Opacity Primary Purple */}
+          <View style={{ 
+            backgroundColor: `${colors.primary}1A`, 
+            borderRadius: 100, 
+            padding: 30, 
+            marginBottom: 40 
+          }}>
+            <Ionicons name={step.icon} size={80} color={colors.primary} />
           </View>
 
-          <Text className="text-3xl font-bold text-foreground text-center mb-4 text-balance px-4">{step.title}</Text>
-          <Text className="text-base text-muted-foreground text-center px-8 text-pretty">{step.description}</Text>
+          <Text style={{ 
+            fontSize: 28, 
+            fontWeight: 'bold', 
+            color: colors.textMain, 
+            textAlign: 'center', 
+            marginBottom: 16,
+            paddingHorizontal: 10
+          }}>
+            {step.title}
+          </Text>
+          
+          <Text style={{ 
+            fontSize: 16, 
+            color: colors.textMuted, 
+            textAlign: 'center', 
+            paddingHorizontal: 20,
+            lineHeight: 24
+          }}>
+            {step.description}
+          </Text>
         </View>
 
         {/* Progress Indicators */}
-        <View className="flex-row justify-center gap-2 mb-8">
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 40 }}>
           {onboardingSteps.map((_, index) => (
             <View
               key={index}
-              className={`h-2 rounded-full ${index === currentStep ? "w-8 bg-primary" : "w-2 bg-primary/30"}`}
+              style={{
+                height: 8,
+                borderRadius: 4,
+                width: index === currentStep ? 32 : 8,
+                backgroundColor: index === currentStep ? colors.primary : `${colors.primary}4D`, // 30% Opacity
+              }}
             />
           ))}
         </View>
 
-        {/* Next Button */}
-        <TouchableOpacity onPress={handleNext} className="bg-secondary rounded-xl py-4 px-6 shadow-lg">
-          <Text className="text-primary-foreground text-center text-lg font-semibold">
+        {/* Next/Get Started Button - Using Secondary Brand Color (Ocean) */}
+        <TouchableOpacity 
+          onPress={handleNext} 
+          style={{ 
+            backgroundColor: colors.secondary, 
+            borderRadius: 12, 
+            paddingVertical: 18, 
+            shadowColor: colors.secondary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 5
+          }}
+        >
+          <Text style={{ color: 'white', textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
             {currentStep === onboardingSteps.length - 1 ? "Get Started" : "Next"}
           </Text>
         </TouchableOpacity>
