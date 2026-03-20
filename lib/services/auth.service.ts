@@ -39,7 +39,6 @@ export interface BackendAuthResponse {
   }
 }
 
-// Frontend-friendly auth response
 export interface AuthResponse {
   success: boolean
   token: string
@@ -56,74 +55,86 @@ export interface AuthResponse {
     bio?: string
     locationCity?: string
     locationState?: string
+    photos?: any[]
   }
 }
 
 class AuthService {
-  private transformAuthResponse(backendResponse: BackendAuthResponse): AuthResponse {
-    const { user, accessToken, refreshToken } = backendResponse.data
+  private transformAuthResponse(backendResponse: BackendAuthResponse): AuthResponse | null {
+    try {
+      if (!backendResponse?.data?.user) {
+        // Return null instead of throwing to avoid crashing the app-wide AuthProvider on mount
+        return null;
+      }
 
-    const profileComplete = user.profile_complete === true || !!(user.date_of_birth && user.gender)
+      const { user, accessToken, refreshToken } = backendResponse.data
+      const profileComplete = user.profile_complete === true || !!(user.date_of_birth && user.gender)
 
-    return {
-      success: backendResponse.success,
-      token: accessToken,
-      refreshToken: refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        profileComplete,
-        emailVerified: user.is_verified,
-        dateOfBirth: user.date_of_birth,
-        gender: user.gender,
-        bio: user.bio,
-        locationCity: user.location_city,
-        locationState: user.location_state,
-      },
+      return {
+        success: backendResponse.success,
+        token: accessToken,
+        refreshToken: refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          profileComplete,
+          emailVerified: user.is_verified,
+          dateOfBirth: user.date_of_birth,
+          gender: user.gender,
+          bio: user.bio,
+          locationCity: user.location_city,
+          locationState: user.location_state,
+        },
+      }
+    } catch (error) {
+      console.error("[The Well] Transformation Error:", error)
+      return null;
     }
   }
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    console.log("[The Well] Attempting login for:", credentials.email)
     const backendResponse = await apiClient.post<BackendAuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials, {
       requiresAuth: false,
     })
 
-    if (!backendResponse) throw new Error("Login failed")
     const response = this.transformAuthResponse(backendResponse)
 
-    if (response.token) {
+    if (response && response.token) {
       await AsyncStorage.setItem("authToken", response.token)
       await AsyncStorage.setItem("refreshToken", response.refreshToken)
       await AsyncStorage.setItem("user", JSON.stringify(response.user))
+      return response;
     }
 
-    return response
+    throw new Error("Invalid login response from server.");
   }
 
   async register(data: RegisterData): Promise<AuthResponse> {
+    console.log("[The Well] Attempting register for:", data.email)
     const backendResponse = await apiClient.post<BackendAuthResponse>(API_ENDPOINTS.AUTH.REGISTER, data, {
       requiresAuth: false,
     })
 
-    if (!backendResponse) throw new Error("Registration failed")
     const response = this.transformAuthResponse(backendResponse)
 
-    if (response.token) {
+    if (response && response.token) {
       await AsyncStorage.setItem("authToken", response.token)
       await AsyncStorage.setItem("refreshToken", response.refreshToken)
       await AsyncStorage.setItem("user", JSON.stringify(response.user))
+      return response;
     }
 
-    return response
+    throw new Error("Registration succeeded but user data was missing.");
   }
 
   async logout(): Promise<void> {
     try {
       await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT, {})
     } catch (error) {
-      console.error("[Anointed Innovations] Logout error:", error)
+      console.error("[The Well] Logout error:", error)
     } finally {
       await AsyncStorage.removeItem("authToken")
       await AsyncStorage.removeItem("refreshToken")
@@ -133,23 +144,15 @@ class AuthService {
 
   async getCurrentUser() {
     try {
-      // 1. Check if a token exists before calling the backend
-      const token = await AsyncStorage.getItem("authToken")
-      
-      // If no token exists (Fresh install / Initial mount), return null immediately
-      if (!token) {
-        return null
-      }
+      // Check if we have a token first to prevent unnecessary 401 errors on mount
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) return null;
 
-      // 2. Only attempt to fetch profile if we have a token
       const response = await apiClient.get<{ success: boolean; data: any }>(API_ENDPOINTS.USERS.PROFILE)
-      
-      // Guard against null response or invalid session
-      if (!response || !response.data) {
-        return null
-      }
-
       const user = response.data
+      
+      if (!user) return null;
+
       const transformedUser = {
         id: user.id,
         email: user.email,
@@ -167,14 +170,13 @@ class AuthService {
         photos: user.photos || [],
       }
 
-      // Update AsyncStorage with fresh data
       await AsyncStorage.setItem("user", JSON.stringify(transformedUser))
-
       return transformedUser
     } catch (error) {
-      console.error("[Anointed Innovations] Error fetching current user from backend:", error)
-      // Fallback to null on error to ensure app moves to Guest state
-      return null
+      // Log for debugging but return null so the AuthProvider moves to 'not authenticated' state
+      console.log("[The Well] Session check: No active user session.");
+      const userStr = await AsyncStorage.getItem("user")
+      return userStr ? JSON.parse(userStr) : null
     }
   }
 
@@ -184,23 +186,22 @@ class AuthService {
   }
 
   async verifyEmail(token: string): Promise<{ success: boolean }> {
-    return apiClient.post(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { token }, { requiresAuth: false }) as any
+    return apiClient.post(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { token }, { requiresAuth: false })
   }
 
   async forgotPassword(email: string): Promise<{ success: boolean }> {
-    return apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email }, { requiresAuth: false }) as any
+    return apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email }, { requiresAuth: false })
   }
 
   async resetPassword(token: string, newPassword: string): Promise<{ success: boolean }> {
     try {
-      const result = await apiClient.post<{ success: boolean }>(
+      return await apiClient.post<{ success: boolean }>(
         API_ENDPOINTS.AUTH.RESET_PASSWORD,
         { token, password: newPassword },
         { requiresAuth: false },
       )
-      return result as any
     } catch (error) {
-      console.error("[Anointed Innovations] API call failed:", error)
+      console.error("[The Well] Reset password failed:", error)
       throw error
     }
   }
@@ -210,7 +211,6 @@ class AuthService {
       const userStr = await AsyncStorage.getItem("user")
       if (userStr) {
         const currentUser = JSON.parse(userStr)
-
         const processedUpdates: any = { ...updates }
 
         if ("profileComplete" in processedUpdates) {
@@ -223,29 +223,26 @@ class AuthService {
       }
       return null
     } catch (error) {
-      console.error("[Anointed Innovations] Error updating current user:", error)
+      console.error("[The Well] Error updating local user:", error)
       return null
     }
   }
 
   async syncUserFromBackend(): Promise<AuthResponse["user"] | null> {
     try {
-      const response = await apiClient.get<{ success: boolean; data: any }>(API_ENDPOINTS.USERS.PROFILE)
-      if (!response || !response.data) return null;
-
-      const frontendUser = this.transformUserProfile(response.data)
-
+      const { userService } = await import("./user.service")
+      const userProfile = await userService.getCurrentUser()
+      const frontendUser = this.transformUserProfile(userProfile)
       await AsyncStorage.setItem("user", JSON.stringify(frontendUser))
       return frontendUser
     } catch (error) {
-      console.error("[Anointed Innovations] Error syncing user from backend:", error)
+      console.error("[The Well] Error syncing user:", error)
       return null
     }
   }
 
   private transformUserProfile(backendUser: any): AuthResponse["user"] {
     const profileComplete = backendUser.profile_complete === true || !!(backendUser.date_of_birth && backendUser.gender)
-
     return {
       id: backendUser.id,
       email: backendUser.email,

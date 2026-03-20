@@ -1,219 +1,194 @@
-import AsyncStorage from "@react-native-async-storage/async-storage"
-import { API_BASE_URL, API_ENDPOINTS } from "@/lib/constants"
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_BASE_URL, API_ENDPOINTS } from "@/lib/constants";
 
 interface RequestOptions extends RequestInit {
-  requiresAuth?: boolean
-  timeout?: number
-  _isRetry?: boolean // Internal flag to prevent infinite retry loops
+  requiresAuth?: boolean;
+  timeout?: number;
+  _isRetry?: boolean;
 }
 
 class ApiClient {
-  private baseURL: string
-  private defaultTimeout = 10000 // 10 seconds
-  private isRefreshing = false // Flag to prevent multiple simultaneous refresh attempts
-  private refreshPromise: Promise<string | null> | null = null // Store the refresh promise to reuse
+  private baseURL: string;
+  private defaultTimeout = 10000; // 10 seconds
+  private isRefreshing = false;
+  private refreshPromise: Promise<string | null> | null = null;
 
   constructor(baseURL: string) {
-    this.baseURL = baseURL
+    this.baseURL = baseURL;
   }
 
   private async getAuthToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem("authToken")
+      return await AsyncStorage.getItem("authToken");
     } catch (error) {
-      console.error("[Anointed Innovations] Error getting auth token:", error)
-      return null
+      console.error("[Anointed Innovations] Error getting auth token:", error);
+      return null;
     }
   }
 
   private async refreshAuthToken(): Promise<string | null> {
     if (this.isRefreshing && this.refreshPromise) {
-      return this.refreshPromise
+      return this.refreshPromise;
     }
 
-    this.isRefreshing = true
-    this.refreshPromise = this._performTokenRefresh()
+    this.isRefreshing = true;
+    this.refreshPromise = this._performTokenRefresh();
 
     try {
-      const newToken = await this.refreshPromise
-      return newToken
+      const newToken = await this.refreshPromise;
+      return newToken;
     } finally {
-      this.isRefreshing = false
-      this.refreshPromise = null
+      this.isRefreshing = false;
+      this.refreshPromise = null;
     }
   }
 
   private async _performTokenRefresh(): Promise<string | null> {
     try {
-      const refreshToken = await AsyncStorage.getItem("refreshToken")
+      const refreshToken = await AsyncStorage.getItem("refreshToken");
       if (!refreshToken) {
-        // Return null silently for guest mode
-        return null
+        console.error("[Anointed Innovations] No refresh token available");
+        return null;
       }
 
       const response = await fetch(`${this.baseURL}${API_ENDPOINTS.AUTH.REFRESH}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken }),
-      })
+      });
 
       if (!response.ok) {
-        await AsyncStorage.removeItem("authToken")
-        await AsyncStorage.removeItem("refreshToken")
-        await AsyncStorage.removeItem("user")
-        return null
+        console.error("[Anointed Innovations] Token refresh failed:", response.status);
+        await AsyncStorage.removeItem("authToken");
+        await AsyncStorage.removeItem("refreshToken");
+        await AsyncStorage.removeItem("user");
+        return null;
       }
 
-      const data = await response.json()
-      const newAccessToken = data.data?.accessToken || data.accessToken
-      const newRefreshToken = data.data?.refreshToken || data.refreshToken
+      const data = await response.json();
+      const newAccessToken = data.data?.accessToken || data.accessToken;
+      const newRefreshToken = data.data?.refreshToken || data.refreshToken;
 
       if (newAccessToken) {
-        await AsyncStorage.setItem("authToken", newAccessToken)
+        await AsyncStorage.setItem("authToken", newAccessToken);
         if (newRefreshToken) {
-          await AsyncStorage.setItem("refreshToken", newRefreshToken)
+          await AsyncStorage.setItem("refreshToken", newRefreshToken);
         }
-        return newAccessToken
+        return newAccessToken;
       }
 
-      return null
+      return null;
     } catch (error) {
-      console.error("[Anointed Innovations] Token refresh error:", error)
-      return null
+      console.error("[Anointed Innovations] Token refresh error:", error);
+      return null;
     }
   }
 
   private async fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeout)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
       const response = await fetch(url, {
         ...options,
         signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-      return response
+      });
+      clearTimeout(timeoutId);
+      return response;
     } catch (error: any) {
-      clearTimeout(timeoutId)
+      clearTimeout(timeoutId);
       if (error.name === "AbortError") {
-        throw new Error("Request timeout - please check your network connection")
+        throw new Error("Request timeout - please check your network connection and backend server");
       }
-      throw error
+      throw error;
     }
   }
 
-  private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T | null> {
+  private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const {
       requiresAuth = true,
       timeout = this.defaultTimeout,
       headers = {},
       _isRetry = false,
       ...restOptions
-    } = options
+    } = options;
 
     const requestHeaders: Record<string, string> = {
       "Content-Type": "application/json",
       ...(headers as Record<string, string>),
-    }
+    };
 
     if (requiresAuth) {
-      const token = await this.getAuthToken()
+      const token = await this.getAuthToken();
       if (token) {
-        requestHeaders["Authorization"] = `Bearer ${token}`
+        requestHeaders["Authorization"] = `Bearer ${token}`;
       } else {
-        // If we need auth but have no token, return null so services can handle guest state
-        return null
+        console.warn("[Anointed Innovations] No auth token found for authenticated request");
       }
     }
 
-    const fullUrl = `${this.baseURL}${endpoint}`
+    const fullUrl = `${this.baseURL}${endpoint}`;
 
     try {
       const response = await this.fetchWithTimeout(
         fullUrl,
-        {
-          ...restOptions,
-          headers: requestHeaders,
-        },
-        timeout,
-      )
+        { ...restOptions, headers: requestHeaders },
+        timeout
+      );
 
       if (response.status === 401 && requiresAuth && !_isRetry) {
-        const newToken = await this.refreshAuthToken()
-
+        const newToken = await this.refreshAuthToken();
         if (newToken) {
-          return this.request<T>(endpoint, { ...options, _isRetry: true })
+          return this.request<T>(endpoint, { ...options, _isRetry: true });
         } else {
-          return null // Auth failed, treat as guest
+          throw new Error("Session expired. Please login again.");
         }
       }
 
-      const contentType = response.headers.get("content-type")
+      const contentType = response.headers.get("content-type");
       if (contentType && !contentType.includes("application/json")) {
-        return null
+        const textError = await response.text();
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        // If it's a 404 or other error during init, return null to avoid blocking UI
-        return null
+        const errorMessage = data.message || data.error || `Request failed with status ${response.status}`;
+        throw new Error(errorMessage);
       }
 
-      return data as T
+      return data;
     } catch (error: any) {
-      console.error("[Anointed Innovations] API failure:", error.message)
-      return null
+      if (error.message && !error.message.includes("Unexpected token")) {
+        throw error;
+      }
+      throw new Error(`Connection error: ${error.message}`);
     }
   }
 
-  async get<T>(endpoint: string, options?: RequestOptions): Promise<T | null> {
-    return this.request<T>(endpoint, { ...options, method: "GET" })
+  async get<T>(endpoint: string, options?: RequestOptions): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: "GET" });
   }
 
-  async post<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T | null> {
+  async post<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
       method: "POST",
       body: JSON.stringify(body),
-    })
+    });
   }
 
-  async put<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T | null> {
-    return this.request<T>(endpoint, {
-      ...options,
-      method: "PUT",
-      body: JSON.stringify(body),
-    })
-  }
-
-  async patch<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T | null> {
-    return this.request<T>(endpoint, {
-      ...options,
-      method: "PATCH",
-      body: JSON.stringify(body),
-    })
-  }
-
-  async delete<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T | null> {
-    return this.request<T>(endpoint, {
-      ...options,
-      method: "DELETE",
-      body: body ? JSON.stringify(body) : undefined,
-    })
-  }
-
-  async uploadFile<T>(endpoint: string, file: any, options?: RequestOptions): Promise<T | null> {
+  async uploadFile<T>(endpoint: string, file: any, options: RequestOptions = {}): Promise<T> {
+    // Increased timeout for file uploads (30 seconds)
+    const { timeout = 30000 } = options; 
     const token = await this.getAuthToken();
     const formData = new FormData();
 
     formData.append("photos", {
       uri: file.uri,
-      name: file.fileName || 'upload.png',
-      type: file.mimeType || 'image/png',
+      name: file.fileName || "upload.png",
+      type: file.mimeType || "image/png",
     } as any);
 
     const requestHeaders: Record<string, string> = {};
@@ -221,19 +196,26 @@ class ApiClient {
       requestHeaders["Authorization"] = `Bearer ${token}`;
     }
 
+    // No Content-Type header set manually to let Fetch handle the multipart boundary
     try {
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        method: "POST",
-        headers: requestHeaders,
-        body: formData,
-      });
+      const response = await this.fetchWithTimeout(
+        `${this.baseURL}${endpoint}`,
+        {
+          method: "POST",
+          headers: requestHeaders,
+          body: formData,
+        },
+        timeout
+      );
 
-      if (!response.ok) return null;
-      return await response.json();
-    } catch (e) {
-      return null;
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Upload failed");
+      return data;
+    } catch (error: any) {
+      console.error("[Anointed Innovations] Upload failure:", error.message);
+      throw error;
     }
   }
 }
 
-export const apiClient = new ApiClient(API_BASE_URL)
+export const apiClient = new ApiClient(API_BASE_URL);
