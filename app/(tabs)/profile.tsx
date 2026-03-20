@@ -95,7 +95,7 @@ export default function ProfileTab() {
 
   return (
     <View className="flex-1 bg-slate-50">
-      <ScrollView className="flex-1" contentContainerClassName="p-4 pb-6">
+      <ScrollView className="flex-1" contentContainerClassName="px-6 py-8">
         <View className="gap-6">
           <Card className="shadow-lg bg-white">
             <CardContent className="p-6 items-center">

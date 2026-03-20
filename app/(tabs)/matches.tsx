@@ -6,6 +6,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Modal,
+  Platform,
 } from 'react-native';
 import { Heart, MessageCircle, Play, Waves, X } from 'lucide-react-native';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -61,10 +62,7 @@ export default function MatchesTab() {
       const details = await matchService.getMatchDetails(match.match_id);
       setMatchDetails(details);
     } catch (error) {
-      console.error(
-        '[Anointed Innovations] Error fetching match details:',
-        error,
-      );
+      console.error('[Anointed Innovations] Error fetching match details:', error);
     } finally {
       setLoadingDetails(false);
     }
@@ -75,24 +73,16 @@ export default function MatchesTab() {
     if (targetMatch?.match_id) {
       setShowMatchModal(false);
       router.push(`/chat/${targetMatch.match_id}`);
-    } else {
-      console.error('[Anointed Innovations] No match ID available for chat', {
-        match,
-        selectedMatch,
-        targetMatch,
-      });
     }
   };
 
   const handleUnmatch = async () => {
     if (!selectedMatch?.match_id) return;
-
     try {
       setUnmatching(true);
       await matchService.unmatch(selectedMatch.match_id);
       setShowMatchModal(false);
       setSelectedMatch(null);
-      setMatchDetails(null);
       await fetchMatches();
     } catch (error) {
       console.error('[Anointed Innovations] Error unmatching:', error);
@@ -105,59 +95,57 @@ export default function MatchesTab() {
     <View className="flex-1 bg-linear-to-b from-ocean-100 via-ocean-50 to-ocean-100">
       <ScrollView
         className="flex-1"
-        contentContainerClassName="p-4 pb-6"
+        // iOS padding adjustment for the status bar
+        contentContainerStyle={{ 
+          paddingHorizontal: 24, 
+          paddingTop: Platform.OS === 'ios' ? 60 : 32, 
+          paddingBottom: 40 
+        }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />
         }
       >
         <View className="gap-6">
-          <Card className="shadow-lg bg-white/95">
-            <CardHeader>
+          {/* Header Card */}
+          <Card className="shadow-sm bg-white/90 border-0">
+            <CardHeader className="pb-2">
               <View className="flex-row items-center gap-2">
                 <Waves size={20} color="#8B5CF6" />
-                <CardTitle className="text-purple-500">
+                <CardTitle className="text-purple-600 font-bold">
                   Flowing Conversations
                 </CardTitle>
               </View>
-              <Text className="text-sm text-slate-600">
-                Gentle ways to connect hearts
-              </Text>
             </CardHeader>
-            <CardContent className="gap-3">
-              <View className="p-4 bg-linear-to-r from-ocean-50 to-ocean-100 rounded-xl border border-purple-200/50">
-                <Text className="text-sm font-medium text-purple-500">
-                  "What brings you the deepest peace in your quiet moments with
-                  God?"
+            <CardContent>
+              <View className="p-4 bg-purple-50 rounded-2xl border border-purple-100">
+                <Text className="text-sm font-medium text-purple-700 italic">
+                  "What brings you the deepest peace in your quiet moments with God?"
                 </Text>
               </View>
             </CardContent>
           </Card>
 
           <View className="gap-4">
-            <View className="flex-row items-center gap-2">
-              <Heart size={20} color="#8B5CF6" />
-              <Text className="text-lg font-semibold text-purple-500">
+            <View className="flex-row items-center gap-2 px-1">
+              <Heart size={18} color="#8B5CF6" fill="#8B5CF6" />
+              <Text className="text-lg font-bold text-slate-800">
                 Your Connections
               </Text>
             </View>
 
             {loading ? (
-              <View className="items-center justify-center py-10">
+              <View className="items-center justify-center py-20">
                 <ActivityIndicator size="large" color="#8B5CF6" />
-                <Text className="text-slate-600 mt-4">
-                  Loading your connections...
-                </Text>
               </View>
             ) : matches.length === 0 ? (
-              <Card className="shadow-lg bg-white/95">
-                <CardContent className="p-6 items-center">
-                  <Heart size={48} color="#8B5CF6" />
-                  <Text className="text-lg font-semibold text-slate-800 mt-4 text-center">
-                    No matches yet
-                  </Text>
-                  <Text className="text-sm text-slate-600 mt-2 text-center">
-                    Keep exploring the Discover tab to find your divine
-                    connection
+              <Card className="shadow-md bg-white/95 border-0 rounded-3xl">
+                <CardContent className="p-10 items-center">
+                  <View className="w-20 h-20 bg-purple-50 rounded-full items-center justify-center mb-4">
+                    <Heart size={40} color="#8B5CF6" />
+                  </View>
+                  <Text className="text-xl font-bold text-slate-800 text-center">No matches yet</Text>
+                  <Text className="text-sm text-slate-500 mt-2 text-center leading-5">
+                    Keep exploring to find your divine connection.
                   </Text>
                 </CardContent>
               </Card>
@@ -166,56 +154,48 @@ export default function MatchesTab() {
                 <TouchableOpacity
                   key={match.match_id || index}
                   onPress={() => handleMatchPress(match)}
+                  activeOpacity={0.7} // Better tactile feedback for iOS
                 >
-                  <Card className="shadow-lg bg-white/95">
+                  <Card className="shadow-sm bg-white border-0 rounded-2xl overflow-hidden">
                     <CardContent className="p-4">
                       <View className="flex-row items-center gap-4">
                         <View className="relative">
-                          <Avatar className="ring-2 ring-purple-200/50">
-                            {match.primary_photo ? (
-                              <AvatarImage
-                                source={{ uri: match.primary_photo }}
-                              />
-                            ) : null}
-                            <AvatarFallback className="bg-linear-to-br from-ocean-400 to-primary">
-                              <Text className="text-white text-lg font-semibold">
-                                {match.first_name?.[0] || '?'}
-                              </Text>
+                          <Avatar className="w-16 h-16 border-2 border-purple-100">
+                            <AvatarImage source={{ uri: match.primary_photo }} />
+                            <AvatarFallback className="bg-slate-200">
+                              <Text className="text-slate-500 font-bold">{match.first_name?.[0]}</Text>
                             </AvatarFallback>
                           </Avatar>
                           {match.profile_video_thumbnail_url && (
-                            <View className="absolute -bottom-1 -right-1 w-5 h-5 bg-linear-to-r from-primary to-primary-light rounded-full items-center justify-center shadow-md">
-                              <Play size={10} color="white" />
+                            <View className="absolute -bottom-1 -right-1 w-6 h-6 bg-purple-600 rounded-full items-center justify-center border-2 border-white shadow-sm">
+                              <Play size={10} color="white" fill="white" />
                             </View>
                           )}
                         </View>
+                        
                         <View className="flex-1">
-                          <View className="flex-row items-center gap-2 mb-1">
-                            <Text className="font-semibold text-base text-slate-800">
-                              {match.first_name}
-                            </Text>
-                            {match.match_score && (
-                              <Badge className="bg-linear-to-r from-ocean-50 to-ocean-100 border-purple-200">
-                                <Text className="text-xs text-purple-500">
-                                  {Math.round(match.match_score)}% harmony
-                                </Text>
-                              </Badge>
-                            )}
-                          </View>
-                          <Text className="text-sm text-slate-600">
+                          <Text className="font-bold text-lg text-slate-900 leading-tight">
+                            {match.first_name}
+                          </Text>
+                          <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
                             {match.location_city}
                           </Text>
-                          {match.profile_video_thumbnail_url && (
-                            <Text className="text-xs text-purple-500 mt-1">
-                              Shared their story
-                            </Text>
+                          {match.match_score && (
+                            <View className="flex-row">
+                              <Badge className="bg-cyan-50 border-0 px-2 py-0.5">
+                                <Text className="text-[10px] font-bold text-cyan-700">
+                                  {Math.round(match.match_score)}% HARMONY
+                                </Text>
+                              </Badge>
+                            </View>
                           )}
                         </View>
+
                         <TouchableOpacity
-                          className="h-10 w-10 bg-linear-to-r from-primary to-primary-light rounded-lg items-center justify-center shadow-md"
+                          className="h-12 w-12 bg-purple-600 rounded-2xl items-center justify-center shadow-sm"
                           onPress={() => handleChatNow(match)}
                         >
-                          <MessageCircle size={16} color="purple" />
+                          <MessageCircle size={22} color="white" />
                         </TouchableOpacity>
                       </View>
                     </CardContent>
@@ -227,169 +207,104 @@ export default function MatchesTab() {
         </View>
       </ScrollView>
 
-      {/* Match Details Modal */}
-      <Modal visible={showMatchModal} transparent animationType="slide">
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-3xl flex-1 max-h-4/5">
-            {/* Header */}
-            <View className="flex-row items-center justify-between p-6 border-b border-slate-200">
-              <Text className="text-2xl font-bold text-slate-800">
+      {/* Profile Detail Modal */}
+      <Modal 
+        visible={showMatchModal} 
+        transparent 
+        animationType="slide"
+        // This is key for iOS to make it feel like a system-native sheet
+        presentationStyle="overFullScreen" 
+      >
+        <View className="flex-1 bg-black/40 justify-end">
+          <View className="bg-white rounded-t-[40px] h-[90%] shadow-2xl">
+            {/* Grabber Handle for iOS Feel */}
+            <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mt-4 mb-2" />
+
+            <View className="flex-row items-center justify-between px-8 py-4">
+              <Text className="text-3xl font-bold text-slate-900">
                 {selectedMatch?.first_name}
               </Text>
               <TouchableOpacity
-                onPress={() => {
-                  setShowMatchModal(false);
-                  setMatchDetails(null);
-                }}
+                className="w-10 h-10 bg-slate-100 rounded-full items-center justify-center"
+                onPress={() => setShowMatchModal(false)}
               >
-                <X size={24} color="#64748B" />
+                <X size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
 
-            {/* Scrollable Content */}
             {loadingDetails ? (
               <View className="flex-1 items-center justify-center">
-                <ActivityIndicator size="large" color="#8B5CF6" />
-                <Text className="text-slate-600 mt-4">Loading profile...</Text>
+                <ActivityIndicator color="#8B5CF6" />
               </View>
             ) : (
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                className="flex-1 px-6 py-4"
-              >
-                {/* Match Photo */}
-                <View className="mb-4 rounded-2xl overflow-hidden h-64 bg-slate-200">
-                  <Avatar className="w-full h-full">
-                    {selectedMatch?.primary_photo && (
-                      <AvatarImage
-                        source={{ uri: selectedMatch.primary_photo }}
-                      />
-                    )}
-                    <AvatarFallback className="bg-slate-200 w-full h-full items-center justify-center">
-                      <Text className="text-slate-400 text-4xl font-bold">
-                        {selectedMatch?.first_name?.[0] || '?'}
-                      </Text>
+              <ScrollView showsVerticalScrollIndicator={false} className="flex-1 px-8">
+                {/* Profile Visual */}
+                <View className="rounded-[32px] overflow-hidden h-80 bg-slate-100 mb-6 shadow-sm">
+                  <Avatar className="w-full h-full rounded-none">
+                    <AvatarImage source={{ uri: selectedMatch?.primary_photo }} className="w-full h-full" />
+                    <AvatarFallback className="w-full h-full items-center justify-center">
+                      <Text className="text-4xl font-bold text-slate-300">{selectedMatch?.first_name?.[0]}</Text>
                     </AvatarFallback>
                   </Avatar>
                 </View>
 
-                {/* Match Info */}
-                <View className="gap-4 pb-6">
-                  {/* Location */}
-                  <View className="bg-linear-to-r from-ocean-50 to-ocean-100 rounded-xl p-4">
-                    <Text className="text-xs text-slate-600 font-semibold mb-1 uppercase">
-                      Location
-                    </Text>
-                    <Text className="text-base font-semibold text-slate-800">
-                      {matchDetails?.location_city
-                        ? `${matchDetails.location_city}${matchDetails?.location_state ? ', ' + matchDetails.location_state : ''}`
-                        : 'Not specified'}
-                    </Text>
+                {/* Content Sections */}
+                <View className="gap-5 pb-10">
+                  <View className="flex-row flex-wrap gap-2">
+                    {matchDetails?.denomination && (
+                      <Badge className="bg-purple-100 border-0 px-4 py-1.5 rounded-full">
+                        <Text className="text-purple-700 font-bold">{matchDetails.denomination}</Text>
+                      </Badge>
+                    )}
+                    {matchDetails?.occupation && (
+                      <Badge className="bg-slate-100 border-0 px-4 py-1.5 rounded-full">
+                        <Text className="text-slate-600 font-bold">{matchDetails.occupation}</Text>
+                      </Badge>
+                    )}
                   </View>
 
-                  {/* Personal Info */}
-                  {(matchDetails?.gender ||
-                    matchDetails?.date_of_birth ||
-                    matchDetails?.height_cm) && (
-                    <View className="bg-slate-50 rounded-xl p-4">
-                      <Text className="text-xs text-slate-600 font-semibold mb-2 uppercase">
-                        About
-                      </Text>
-                      <View className="gap-1">
-                        {matchDetails?.gender && (
-                          <Text className="text-sm text-slate-800">
-                            {matchDetails.gender}
-                          </Text>
-                        )}
-                        {matchDetails?.height_cm && (
-                          <Text className="text-sm text-slate-800">
-                            {Math.floor(matchDetails.height_cm / 30.48)}
-                            {"'"}
-                            {Math.round(
-                              (matchDetails.height_cm % 30.48) / 2.54,
-                            )}
-                            {'"'}
-                          </Text>
-                        )}
-                        {matchDetails?.occupation && (
-                          <Text className="text-sm text-slate-800">
-                            {matchDetails.occupation}
-                          </Text>
-                        )}
-                        {matchDetails?.education_level && (
-                          <Text className="text-sm text-slate-800">
-                            {matchDetails.education_level}
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Faith Info */}
-                  {matchDetails?.denomination && (
-                    <View className="bg-purple-50 rounded-xl p-4 border border-purple-200">
-                      <Text className="text-xs text-slate-600 font-semibold mb-1 uppercase">
-                        Faith Journey
-                      </Text>
-                      <View className="gap-2">
-                        {matchDetails?.denomination && (
-                          <Text className="text-sm text-slate-800">
-                            {matchDetails.denomination}
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  )}
-
-                  {/* About */}
                   {matchDetails?.bio && (
-                    <View className="bg-slate-50 rounded-xl p-4">
-                      <Text className="text-xs text-slate-600 font-semibold mb-2 uppercase">
-                        About {matchDetails?.first_name}
-                      </Text>
-                      <Text className="text-sm leading-relaxed text-slate-800">
-                        {matchDetails.bio}
+                    <View>
+                      <Text className="text-[15px] leading-6 text-slate-700 font-medium italic">
+                        "{matchDetails.bio}"
                       </Text>
                     </View>
                   )}
 
-                  {/* Compatibility */}
+                  <View className="h-[1px] bg-slate-100 w-full my-2" />
+
+                  {/* Harmony Score */}
                   {matchDetails?.match_score && (
-                    <View className="bg-linear-to-r from-primary/10 to-primary-light/10 rounded-xl p-4 border border-primary/20">
-                      <Text className="text-xs text-slate-600 font-semibold mb-2 uppercase">
-                        Compatibility Match
-                      </Text>
-                      <View className="flex-row items-baseline gap-2">
-                        <Text className="text-3xl font-bold text-primary">
-                          {Math.round(matchDetails.match_score)}%
-                        </Text>
-                        <Text className="text-sm text-slate-600">harmony</Text>
+                    <View className="bg-cyan-50 rounded-3xl p-6 flex-row items-center justify-between">
+                      <View>
+                        <Text className="text-cyan-800 font-bold text-lg leading-tight">Soul Harmony</Text>
+                        <Text className="text-cyan-600 text-sm font-medium">Faith-based compatibility</Text>
                       </View>
+                      <Text className="text-4xl font-bold text-cyan-600">{Math.round(matchDetails.match_score)}%</Text>
                     </View>
                   )}
                 </View>
               </ScrollView>
             )}
 
-            {/* Action Buttons - Fixed at bottom */}
-            <View className="gap-3 p-6 border-t border-slate-200 bg-white">
+            {/* Sticky Actions */}
+            <View className="p-8 pt-4 pb-12 border-t border-slate-50 gap-4">
               <TouchableOpacity
-                className="bg-linear-to-r from-primary to-primary-light rounded-xl p-4 flex items-center shadow-md"
+                className="bg-purple-600 h-16 rounded-2xl flex-row items-center justify-center shadow-lg"
                 onPress={() => handleChatNow()}
+               activeOpacity={0.8}
               >
-                <MessageCircle size={20} color="purple" />
-                <Text className="text-purple font-semibold text-base">
-                  Chat Now
-                </Text>
+                <MessageCircle size={22} color="white" className="mr-2" />
+                <Text className="text-white font-bold text-lg">Message {selectedMatch?.first_name}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="border-2 border-slate-300 rounded-xl p-3 items-center"
+                className="h-12 items-center justify-center"
                 onPress={handleUnmatch}
                 disabled={unmatching}
               >
-                <Text className="text-slate-700 font-semibold text-base">
-                  {unmatching ? 'Unmatching...' : 'Unmatch'}
+                <Text className="text-slate-400 font-bold text-base">
+                  {unmatching ? 'Removing Connection...' : 'Unmatch Connection'}
                 </Text>
               </TouchableOpacity>
             </View>

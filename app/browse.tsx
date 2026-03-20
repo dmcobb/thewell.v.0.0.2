@@ -13,6 +13,7 @@ import { Heart, X, MessageCircle, Users } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { matchService } from '@/lib/services/match.service';
 import { useAuth } from '@/contexts/auth-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function BrowseScreen() {
   const router = useRouter();
@@ -24,7 +25,6 @@ export default function BrowseScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [chatModalVisible, setChatModalVisible] = useState(false);
-  const [subscriptionModal, setSubscriptionModal] = useState(false);
 
   useEffect(() => {
     fetchMatches();
@@ -83,7 +83,7 @@ export default function BrowseScreen() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#0891B2" />
+        <ActivityIndicator size="large" color="#9B7EDE" />
         <Text className="mt-4 text-slate-600">Loading matches...</Text>
       </View>
     );
@@ -91,9 +91,12 @@ export default function BrowseScreen() {
 
   if (matches.length === 0) {
     return (
-      <View className="flex-1 items-center justify-center bg-white p-4">
-        <Card className="border-slate-200 w-full">
-          <CardContent className="p-6 items-center">
+      <View className="flex-1 items-center justify-center bg-slate-50 p-4">
+        <Card className="border-slate-200 w-full bg-white shadow-sm">
+          <CardContent className="p-8 items-center">
+            <View className="bg-purple-50 p-4 rounded-full mb-4">
+              <Users size={48} color="#9B7EDE" />
+            </View>
             <Text className="text-2xl font-bold text-slate-800 mb-2">
               No more matches
             </Text>
@@ -101,10 +104,17 @@ export default function BrowseScreen() {
               You've reviewed all available matches. Check back later for more!
             </Text>
             <TouchableOpacity
-              className="bg-gradient-to-r from-primary to-primary-light px-6 py-3 rounded-full"
               onPress={fetchMatches}
+              className="w-full"
             >
-              <Text className="text-white font-semibold">Refresh</Text>
+              <LinearGradient
+                colors={['#9B7EDE', '#8B5CF6']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ borderRadius: 999, paddingVertical: 14 }}
+              >
+                <Text className="text-white font-bold text-center">Refresh</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </CardContent>
         </Card>
@@ -117,10 +127,10 @@ export default function BrowseScreen() {
   return (
     <View className="flex-1 bg-slate-50">
       {/* Header */}
-      <View className="bg-white border-b border-slate-200 px-4 py-4">
+      <View className="bg-white border-b border-slate-200 px-6 pt-14 pb-4">
         <Text className="text-2xl font-bold text-slate-800">Discover</Text>
-        <Text className="text-slate-600 text-sm">
-          {currentIndex + 1} of {matches.length}
+        <Text className="text-slate-500 text-sm font-medium">
+          Showing {currentIndex + 1} of {matches.length} matches
         </Text>
       </View>
 
@@ -131,7 +141,7 @@ export default function BrowseScreen() {
           onPress={() => handleMatchPress(currentMatch)}
           className="w-full"
         >
-          <Card className="border-0 shadow-lg overflow-hidden">
+          <Card className="border-0 shadow-xl overflow-hidden bg-white rounded-[32px]">
             <View
               className="relative w-full bg-slate-200"
               style={{ height: 500 }}
@@ -143,63 +153,74 @@ export default function BrowseScreen() {
                   resizeMode="cover"
                 />
               ) : (
-                <View className="w-full h-full bg-slate-300 items-center justify-center rounded-lg">
-                  <Users size={48} color="#94a3b8" />
+                <View className="w-full h-full bg-slate-100 items-center justify-center">
+                  <Users size={64} color="#CBD5E1" />
                 </View>
               )}
 
               {/* Overlay Info */}
-              <View className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                <Text className="text-white text-2xl font-bold">
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.8)']}
+                className="absolute bottom-0 left-0 right-0 p-6 pt-12"
+              >
+                <Text className="text-white text-3xl font-bold">
                   {currentMatch?.first_name}, {currentMatch?.age || 'N/A'}
                 </Text>
-                <Text className="text-white/80 text-sm">
+                <Text className="text-purple-200 text-base font-medium">
                   {currentMatch?.location_city}
                 </Text>
-                <Text className="text-white/70 text-xs mt-2 line-clamp-2">
+                <Text className="text-white/90 text-sm mt-3 line-clamp-2 leading-5">
                   {currentMatch?.bio}
                 </Text>
-              </View>
+              </LinearGradient>
             </View>
           </Card>
         </TouchableOpacity>
 
         {/* Action Buttons */}
-        <View className="flex-row gap-6 mt-8 justify-center items-center">
+        <View className="flex-row gap-8 mt-10 justify-center items-center">
           <TouchableOpacity
-            className="w-14 h-14 rounded-full bg-white border-2 border-red-500 items-center justify-center shadow-md"
+            className="w-16 h-16 rounded-full bg-white items-center justify-center shadow-lg border border-slate-100"
             onPress={handleDislike}
           >
-            <X size={24} color="#ef4444" />
+            <X size={28} color="#64748B" />
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-primary-light items-center justify-center shadow-lg"
             onPress={() => handleLike(currentMatch.id)}
+            style={{ shadowColor: '#9B7EDE', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8 }}
           >
-            <Heart size={28} color="white" fill="white" />
+            <LinearGradient
+              colors={['#9B7EDE', '#8B5CF6']}
+              className="w-20 h-20 rounded-full items-center justify-center"
+            >
+              <Heart size={36} color="white" fill="white" />
+            </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="w-14 h-14 rounded-full bg-white border-2 border-slate-300 items-center justify-center shadow-md"
+            className="w-16 h-16 rounded-full bg-white items-center justify-center shadow-lg border border-slate-100"
             onPress={() => {
               setSelectedMatchId(currentMatch.id);
               setChatModalVisible(true);
             }}
           >
-            <MessageCircle size={24} color="#0891B2" />
+            <MessageCircle size={28} color="#9B7EDE" />
           </TouchableOpacity>
         </View>
 
         {/* Stack Counter */}
-        <View className="mt-6 flex-row gap-2">
+        <View className="mt-8 flex-row gap-2 px-10">
           {matches
             .slice(currentIndex, Math.min(currentIndex + 3, matches.length))
             .map((_, idx) => (
               <View
                 key={idx}
-                className="h-1 bg-slate-300 rounded-full flex-1"
-                style={{ opacity: 1 - idx * 0.3 }}
+                className="h-1.5 rounded-full flex-1"
+                style={{ 
+                  backgroundColor: idx === 0 ? '#9B7EDE' : '#E2E8F0',
+                  opacity: 1 - idx * 0.3 
+                }}
               />
             ))}
         </View>
@@ -212,17 +233,20 @@ export default function BrowseScreen() {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View className="flex-1 bg-white pt-12">
-          <TouchableOpacity
-            className="px-4 py-2"
-            onPress={() => setModalVisible(false)}
-          >
-            <Text className="text-primary font-semibold text-lg">Close</Text>
-          </TouchableOpacity>
+        <View className="flex-1 bg-white">
+          <View className="pt-14 px-4 flex-row items-center justify-between border-b border-slate-100 pb-4">
+            <TouchableOpacity
+              onPress={() => setModalVisible(false)}
+            >
+              <Text className="text-primary font-bold text-lg">Back</Text>
+            </TouchableOpacity>
+            <Text className="font-bold text-slate-800 text-lg">Profile Details</Text>
+            <View className="w-10" />
+          </View>
 
-          <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
             {selectedMatch?.primary_photo && (
-              <View className="w-full bg-slate-200" style={{ height: 400 }}>
+              <View className="w-full bg-slate-100" style={{ height: 450 }}>
                 <Image
                   source={{ uri: selectedMatch.primary_photo }}
                   style={{ width: '100%', height: '100%' }}
@@ -231,20 +255,20 @@ export default function BrowseScreen() {
               </View>
             )}
 
-            <View className="px-4 py-6">
-              <Text className="text-3xl font-bold text-slate-800 mb-2">
+            <View className="px-6 py-6">
+              <Text className="text-3xl font-bold text-slate-800 mb-1">
                 {selectedMatch?.first_name}, {selectedMatch?.age}
               </Text>
-              <Text className="text-slate-600 mb-4">
+              <Text className="text-slate-500 text-lg mb-6">
                 {selectedMatch?.location_city}
               </Text>
 
               {selectedMatch?.bio && (
-                <View className="mb-6">
-                  <Text className="text-sm font-semibold text-slate-700 mb-2">
+                <View className="mb-8 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <Text className="text-xs uppercase tracking-widest font-bold text-slate-400 mb-2">
                     About
                   </Text>
-                  <Text className="text-slate-600 leading-relaxed">
+                  <Text className="text-slate-700 text-lg leading-relaxed">
                     {selectedMatch.bio}
                   </Text>
                 </View>
@@ -253,7 +277,7 @@ export default function BrowseScreen() {
               {selectedMatch?.interests &&
                 selectedMatch.interests.length > 0 && (
                   <View className="mb-6">
-                    <Text className="text-sm font-semibold text-slate-700 mb-3">
+                    <Text className="text-xs uppercase tracking-widest font-bold text-slate-400 mb-3">
                       Interests
                     </Text>
                     <View className="flex-row flex-wrap gap-2">
@@ -261,9 +285,9 @@ export default function BrowseScreen() {
                         (interest: string, idx: number) => (
                           <View
                             key={idx}
-                            className="bg-primary/10 px-3 py-2 rounded-full border border-primary/20"
+                            className="bg-purple-50 px-4 py-2 rounded-full border border-purple-100"
                           >
-                            <Text className="text-primary text-sm font-medium">
+                            <Text className="text-primary text-sm font-semibold">
                               {interest}
                             </Text>
                           </View>
@@ -276,25 +300,33 @@ export default function BrowseScreen() {
           </ScrollView>
 
           {/* Action Buttons at Bottom of Modal */}
-          <View className="border-t border-slate-200 px-4 py-4 flex-row gap-4">
+          <View className="absolute bottom-0 left-0 right-0 bg-white/90 border-t border-slate-100 px-6 py-6 flex-row gap-4">
             <TouchableOpacity
-              className="flex-1 border-2 border-red-500 rounded-full py-3 items-center"
+              className="flex-1 bg-slate-100 rounded-2xl py-4 items-center"
               onPress={() => {
                 setModalVisible(false);
                 handleDislike();
               }}
             >
-              <X size={24} color="#ef4444" />
+              <X size={28} color="#64748B" />
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="flex-1 bg-gradient-to-r from-primary to-primary-light rounded-full py-3 items-center"
+              className="flex-2 rounded-2xl overflow-hidden"
               onPress={() => {
                 setModalVisible(false);
                 handleLike(selectedMatch.id);
               }}
             >
-              <Heart size={24} color="white" fill="white" />
+              <LinearGradient
+                colors={['#9B7EDE', '#8B5CF6']}
+                className="py-4 items-center"
+              >
+                <View className="flex-row items-center gap-2">
+                  <Heart size={24} color="white" fill="white" />
+                  <Text className="text-white font-bold text-lg">Like</Text>
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -307,37 +339,43 @@ export default function BrowseScreen() {
         visible={chatModalVisible}
         onRequestClose={() => setChatModalVisible(false)}
       >
-        <View className="flex-1 bg-black/50 items-center justify-center">
-          <Card className="border-slate-200 mx-6">
-            <CardContent className="p-6">
-              <Text className="text-2xl font-bold text-slate-800 mb-2 text-center">
+        <View className="flex-1 bg-black/60 items-center justify-center px-6">
+          <Card className="border-0 bg-white rounded-[40px] w-full overflow-hidden">
+            <View className="p-8 items-center">
+              <View className="bg-purple-100 p-4 rounded-full mb-4">
+                <Heart size={48} color="#9B7EDE" fill="#9B7EDE" />
+              </View>
+              <Text className="text-3xl font-bold text-slate-800 mb-2 text-center">
                 It's a Match!
               </Text>
-              <Text className="text-slate-600 text-center mb-6">
-                You and {selectedMatch?.first_name} liked each other. Start
-                chatting now!
+              <Text className="text-slate-600 text-center mb-8 text-lg">
+                You and {selectedMatch?.first_name} liked each other.
               </Text>
 
-              <View className="flex-row gap-3">
+              <View className="w-full gap-4">
                 <TouchableOpacity
-                  className="flex-1 border border-slate-300 rounded-full py-3"
-                  onPress={() => setChatModalVisible(false)}
+                  onPress={handleChatNow}
                 >
-                  <Text className="text-slate-800 font-semibold text-center">
-                    Later
-                  </Text>
+                  <LinearGradient
+                    colors={['#9B7EDE', '#8B5CF6']}
+                    className="py-4 rounded-2xl items-center"
+                  >
+                    <Text className="text-white font-bold text-lg">
+                      Chat Now
+                    </Text>
+                  </LinearGradient>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  className="flex-1 bg-gradient-to-r from-primary to-primary-light rounded-full py-3"
-                  onPress={handleChatNow}
+                  className="py-2"
+                  onPress={() => setChatModalVisible(false)}
                 >
-                  <Text className="text-white font-semibold text-center">
-                    Chat Now
+                  <Text className="text-slate-400 font-semibold text-center">
+                    Maybe Later
                   </Text>
                 </TouchableOpacity>
               </View>
-            </CardContent>
+            </View>
           </Card>
         </View>
       </Modal>

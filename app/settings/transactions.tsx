@@ -50,14 +50,15 @@ export default function TransactionsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gradient-to-b from-ocean-100 via-ocean-50 to-ocean-100">
+    <View className="flex-1 bg-linear-to-b from-slate-100 via-slate-50 to-slate-100">
       <LinearGradient
-        colors={['#0891B2', '#0284C7', '#8B5CF6', '#0369A1']}
+        colors={['#9B7EDE', '#8B5CF6', '#7C3AED']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         className="relative overflow-hidden"
       >
-        <View className="p-4">
+        {/* Added pt-14 to ensure header clears the status bar/notch on both platforms */}
+        <View className="px-4 pt-14 pb-6">
           <View className="flex-row items-center gap-3">
             <Button variant="ghost" size="sm" onPress={() => router.back()}>
               <ArrowLeft size={24} color="white" />
@@ -90,7 +91,7 @@ export default function TransactionsScreen() {
             {transactions.map((transaction) => (
               <Card
                 key={transaction.id}
-                className="shadow-lg bg-white/95 overflow-hidden"
+                className="shadow-lg bg-white/95 overflow-hidden border-0 rounded-2xl"
               >
                 <CardContent className="p-0">
                   <View className="flex-row items-center p-4">
@@ -128,7 +129,7 @@ export default function TransactionsScreen() {
                           {transaction.amount.toFixed(2)}
                         </Text>
                       </View>
-                      <View className="bg-green-50 rounded px-2 py-1">
+                      <View className="bg-green-50 rounded px-2 py-1 border border-green-100">
                         <Text className="text-xs font-medium text-green-700">
                           {transaction.status}
                         </Text>

@@ -6,12 +6,9 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Image } from 'expo-image';
 import {
-  Bell,
-  Settings,
   Heart,
   Trash2,
   AlertCircle,
@@ -57,7 +54,7 @@ export default function LikesTab() {
   const handleUnlike = (user: LikedUser) => {
     Alert.alert(
       'Unlike User',
-      `Remove your like for ${user.first_name}? You can always like them again later.`,
+      `Remove your like for ${user.first_name}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -68,16 +65,9 @@ export default function LikesTab() {
               setUnlikingId(user.id);
               await matchService.unlikeUser(user.id);
               setLikedUsers(likedUsers.filter((u) => u.id !== user.id));
-              Alert.alert(
-                'Success',
-                `Your like for ${user.first_name} has been removed.`,
-              );
             } catch (error) {
-              console.error(
-                '[Anointed Innovations] Error unliking user:',
-                error,
-              );
-              Alert.alert('Error', 'Failed to unlike user. Please try again.');
+              console.error('[Anointed Innovations] Error unliking user:', error);
+              Alert.alert('Error', 'Failed to unlike user.');
             } finally {
               setUnlikingId(null);
             }
@@ -88,82 +78,83 @@ export default function LikesTab() {
   };
 
   return (
-    <View className="flex-1 bg-gradient-to-b from-ocean-100 via-ocean-50 to-ocean-100">
+    <View className="flex-1 bg-linear-to-b from-ocean-100 via-ocean-50 to-ocean-100">
       <ScrollView
         className="flex-1"
-        contentContainerClassName="p-4 pb-6"
+        // Using style for padding to ensure consistent behavior across ScrollView implementations
+        contentContainerStyle={{ 
+          paddingHorizontal: 24, 
+          paddingTop: 16, 
+          paddingBottom: 40 
+        }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor="#8B5CF6" // Required for visibility on iOS light backgrounds
+          />
         }
       >
         <View className="gap-6">
-          <Card className="shadow-lg bg-white/95">
-            <CardHeader>
+          <Card className="shadow-lg bg-white/95 border-0 rounded-3xl">
+            <CardHeader className="pb-4">
               <View className="flex-row items-center gap-2">
-                <Heart size={20} color="#8B5CF6" />
-                <CardTitle className="text-purple-500">Your Likes</CardTitle>
+                <Heart size={22} color="#8B5CF6" fill="#8B5CF6" />
+                <CardTitle className="text-purple-600 font-bold text-xl">
+                  Your Likes
+                </CardTitle>
               </View>
-              <Text className="text-sm text-slate-600">
+              <Text className="text-sm text-slate-500 font-medium">
                 People who have captured your heart
               </Text>
             </CardHeader>
           </Card>
 
-          {loading ? (
-            <View className="items-center justify-center py-10">
+          {loading && !refreshing ? (
+            <View className="items-center justify-center py-20">
               <ActivityIndicator size="large" color="#8B5CF6" />
-              <Text className="text-slate-600 mt-4">Loading your likes...</Text>
+              <Text className="text-slate-500 font-medium mt-4">Loading your likes...</Text>
             </View>
           ) : likedUsers.length === 0 ? (
-            <Card className="shadow-lg bg-white/95">
-              <CardContent className="p-6 items-center gap-3">
-                <Heart size={48} color="#8B5CF6" opacity={0.5} />
-                <Text className="text-lg font-semibold text-slate-800 text-center">
-                  No likes yet
-                </Text>
-                <Text className="text-sm text-slate-600 text-center">
-                  Start exploring in the Discover tab to express your interest
-                  in others
-                </Text>
-              </CardContent>
-            </Card>
+            <View className="py-20 items-center gap-4">
+              <View className="w-20 h-20 bg-purple-50 rounded-full items-center justify-center">
+                 <Heart size={40} color="#8B5CF6" opacity={0.3} />
+              </View>
+              <Text className="text-lg font-bold text-slate-800 text-center px-10">
+                No likes yet
+              </Text>
+              <Text className="text-sm text-slate-500 text-center px-10 leading-5">
+                Start exploring in the Discover tab to express your interest
+                in others.
+              </Text>
+            </View>
           ) : (
             <View className="gap-4">
               {likedUsers.map((user) => (
                 <Card
                   key={user.id}
-                  className="shadow-lg bg-white/95 overflow-hidden"
+                  className="shadow-md bg-white border-0 rounded-[24px] overflow-hidden"
                 >
-                  <CardContent className="p-4">
-                    <View className="gap-3">
-                      {/* User Info Header */}
-                      <View className="flex-row items-center gap-3">
-                        <Avatar className="ring-2 ring-purple-200/50">
-                          {!!user.primary_photo && (
+                  <CardContent className="p-5">
+                    <View className="gap-4">
+                      <View className="flex-row items-center gap-4">
+                        <Avatar className="w-14 h-14 border border-purple-100">
+                          {!!user.primary_photo ? (
                             <AvatarImage source={{ uri: user.primary_photo }} />
+                          ) : (
+                            <AvatarFallback className="bg-slate-200">
+                              <Text className="text-slate-600 font-bold">
+                                {user.first_name?.[0]}
+                              </Text>
+                            </AvatarFallback>
                           )}
-                          <AvatarFallback className="bg-gradient-to-br from-ocean-400 to-primary">
-                            <Text className="text-white text-lg font-semibold">
-                              {user.first_name?.[0] || '?'}
-                            </Text>
-                          </AvatarFallback>
                         </Avatar>
 
                         <View className="flex-1">
-                          <View className="flex-row items-center gap-2 mb-1">
-                            <Text className="font-semibold text-base text-slate-800">
-                              {user.first_name} {user.last_name}
-                            </Text>
-                            {/* Force match_score to boolean to avoid rendering '0' */}
-                            {!!user.match_score && (
-                              <Badge className="bg-gradient-to-r from-ocean-50 to-ocean-100 border-purple-200">
-                                <Text className="text-xs text-purple-500">
-                                  {Math.round(user.match_score)}% harmony
-                                </Text>
-                              </Badge>
-                            )}
-                          </View>
-                          <Text className="text-sm text-slate-600">
+                          <Text className="font-bold text-lg text-slate-900">
+                            {user.first_name} {user.last_name}
+                          </Text>
+                          <Text className="text-sm text-slate-500 font-medium">
                             {user.location_city}
                           </Text>
                         </View>
@@ -171,70 +162,47 @@ export default function LikesTab() {
                         <TouchableOpacity
                           disabled={unlikingId === user.id}
                           onPress={() => handleUnlike(user)}
-                          className="h-10 w-10 rounded-lg items-center justify-center bg-red-50 border border-red-200"
+                          className="h-10 w-10 rounded-xl items-center justify-center bg-red-50"
+                          activeOpacity={0.7}
                         >
                           {unlikingId === user.id ? (
                             <ActivityIndicator size="small" color="#DC2626" />
                           ) : (
-                            <Trash2 size={16} color="#DC2626" />
+                            <Trash2 size={18} color="#DC2626" />
                           )}
                         </TouchableOpacity>
                       </View>
 
-                      {/* Bio Section */}
                       {!!user.bio && (
-                        <View className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                          <Text className="text-sm text-slate-700 leading-relaxed">
-                            {user.bio}
+                        <View className="p-4 bg-slate-50 rounded-2xl">
+                          <Text className="text-[13px] text-slate-600 leading-5 italic">
+                            "{user.bio}"
                           </Text>
                         </View>
                       )}
 
-                      {/* Details Row */}
                       <View className="flex-row flex-wrap gap-2">
+                        {!!user.match_score && (
+                          <Badge className="bg-purple-600 border-0">
+                            <Text className="text-[10px] font-bold text-white uppercase">
+                              {Math.round(user.match_score)}% Harmony
+                            </Text>
+                          </Badge>
+                        )}
                         {!!user.denomination && (
-                          <Badge variant="outline" className="bg-white">
-                            <Text className="text-xs text-slate-600">
+                          <Badge variant="outline" className="bg-white border-slate-200">
+                            <Text className="text-[11px] text-slate-600 font-medium">
                               {user.denomination}
-                            </Text>
-                          </Badge>
-                        )}
-                        {!!user.occupation && (
-                          <Badge variant="outline" className="bg-white">
-                            <Text className="text-xs text-slate-600">
-                              {user.occupation}
-                            </Text>
-                          </Badge>
-                        )}
-                        {/* Height calculation - strict null/undefined check */}
-                        {user.height_cm != null && (
-                          <Badge variant="outline" className="bg-white">
-                            <Text className="text-xs text-slate-600">
-                              {`${(user.height_cm / 30.48).toFixed(1)}'`}
-                            </Text>
-                          </Badge>
-                        )}
-                        {!!user.liked_at && (
-                          <Badge
-                            variant="outline"
-                            className="bg-purple-50 border-purple-200"
-                          >
-                            <Text className="text-xs text-purple-600">
-                              {`Liked ${new Date(user.liked_at).toLocaleDateString()}`}
                             </Text>
                           </Badge>
                         )}
                       </View>
 
-                      {/* Info Box */}
-                      <View className="flex-row gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <AlertCircle size={16} color="#3B82F6" />
-                        <View className="flex-1">
-                          <Text className="text-xs text-blue-700">
-                            You can unlike at any time. They won't be notified
-                            about this action.
-                          </Text>
-                        </View>
+                      <View className="flex-row gap-2 items-center">
+                        <AlertCircle size={14} color="#3B82F6" />
+                        <Text className="text-[11px] text-blue-600 font-medium">
+                          Private: They won't be notified if you unlike.
+                        </Text>
                       </View>
                     </View>
                   </CardContent>

@@ -181,99 +181,89 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-linear-to-b from-ocean-100 via-ocean-50 to-ocean-100">
+    <View className="flex-1 bg-slate-50">
       <LinearGradient
-        colors={['#0891B2', '#0284C7', '#8B5CF6', '#0369A1']}
+        colors={['#9B7EDE', '#8B5CF6', '#7C3AED']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         className="relative overflow-hidden"
       >
-        <View className="px-4 pt-12 pb-4">
-          <View className="flex-row items-center gap-3">
-            <Button variant="ghost" size="sm" onPress={() => router.back()}>
+        <View className="px-5 pt-14 pb-6">
+          <View className="flex-row items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onPress={() => router.back()} 
+              className="p-0 h-10 w-10 bg-white/20 rounded-full"
+            >
               <ArrowLeft size={24} color="white" />
             </Button>
             <View className="flex-1">
-              <Text className="text-xl font-bold text-white">Settings</Text>
-              <Text className="text-purple-100 text-xs">
-                Manage your account and preferences
+              <Text className="text-2xl font-bold text-white">Settings</Text>
+              <Text className="text-purple-100 text-xs font-medium uppercase tracking-widest">
+                Account & Preferences
               </Text>
             </View>
           </View>
         </View>
       </LinearGradient>
 
-      <ScrollView className="flex-1" contentContainerClassName="p-4 pb-6">
-        <View className="gap-4">
+      <ScrollView className="flex-1" contentContainerClassName="p-5 pb-10">
+        <View className="gap-6">
           {/* Profile Settings */}
-          <Card className="shadow-lg bg-white/95">
-            <CardHeader>
-              <View className="flex-row items-center gap-2">
-                <User size={20} color="#8B5CF6" />
-                <CardTitle>Profile Settings</CardTitle>
+          <Card className="shadow-xl bg-white border-0 rounded-[24px]">
+            <CardHeader className="pb-2">
+              <View className="flex-row items-center gap-3">
+                <User size={20} color="#9B7EDE" />
+                <CardTitle className="text-slate-800">Profile Settings</CardTitle>
               </View>
             </CardHeader>
             <CardContent className="gap-3">
               <Button
                 variant="outline"
-                className="w-full h-12 bg-transparent"
+                className="w-full h-14 bg-purple-50 border-purple-100 rounded-xl"
                 onPress={() => setEditProfileModalVisible(true)}
               >
-                <Text className="text-purple-500 font-medium">
-                  Edit Profile
-                </Text>
+                <Text className="text-primary font-bold">Edit Profile</Text>
               </Button>
               <Button
                 variant="outline"
-                className="w-full h-12 bg-transparent"
+                className="w-full h-14 bg-slate-50 border-slate-100 rounded-xl"
                 onPress={() => router.push('/profile/video')}
               >
-                <Text className="text-purple-500 font-medium">
-                  Update Video
-                </Text>
+                <Text className="text-slate-600 font-bold">Update Video</Text>
               </Button>
             </CardContent>
           </Card>
 
           {/* Match Preferences */}
-          <Card className="shadow-lg bg-white/95">
-            <CardHeader>
-              <View className="flex-row items-center gap-2">
-                <Sliders size={20} color="#8B5CF6" />
-                <CardTitle>Match Preferences</CardTitle>
+          <Card className="shadow-xl bg-white border-0 rounded-[24px]">
+            <CardHeader className="pb-4">
+              <View className="flex-row items-center gap-3">
+                <Sliders size={20} color="#9B7EDE" />
+                <CardTitle className="text-slate-800">Match Preferences</CardTitle>
               </View>
-              <Text className="text-sm text-slate-600">
-                Adjust who you want to see
+              <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                Refine your discovery
               </Text>
             </CardHeader>
-            <CardContent className="gap-4">
+            <CardContent className="gap-6">
               <View>
-                <Text className="text-sm font-medium text-slate-700 mb-2">
-                  Looking For
-                </Text>
+                <Text className="text-sm font-bold text-slate-700 mb-3">Looking For</Text>
                 <View className="flex-row flex-wrap gap-2">
-                  {[
-                    'Serious Relationship',
-                    'Friendship',
-                    'Dating',
-                    'Marriage',
-                  ].map((option) => (
+                  {['Serious Relationship', 'Friendship', 'Dating', 'Marriage'].map((option) => (
                     <TouchableOpacity
                       key={option}
-                      onPress={() =>
-                        setPreferences({ ...preferences, lookingFor: option })
-                      }
-                      className={`px-4 py-2 rounded-lg border ${
+                      onPress={() => setPreferences({ ...preferences, lookingFor: option })}
+                      className={`px-4 py-2 rounded-full border ${
                         preferences.lookingFor === option
-                          ? 'border-primary bg-primary/10'
-                          : 'border-slate-300'
+                          ? 'border-primary bg-purple-50'
+                          : 'border-slate-200 bg-white'
                       }`}
                     >
                       <Text
-                        className={`text-sm ${
-                          preferences.lookingFor === option
-                            ? 'text-primary font-medium'
-                            : 'text-slate-600'
+                        className={`text-sm font-semibold ${
+                          preferences.lookingFor === option ? 'text-primary' : 'text-slate-500'
                         }`}
                       >
                         {option}
@@ -284,9 +274,7 @@ export default function SettingsScreen() {
               </View>
 
               <View>
-                <Text className="text-sm font-medium text-slate-700 mb-2">
-                  Age Range
-                </Text>
+                <Text className="text-sm font-bold text-slate-700 mb-3">Age Range</Text>
                 <View className="flex-row items-center gap-3">
                   <View className="flex-1">
                     <TextInput
@@ -294,64 +282,53 @@ export default function SettingsScreen() {
                       onChangeText={(text) =>
                         setPreferences({
                           ...preferences,
-                          ageRange: {
-                            ...preferences.ageRange!,
-                            min: Number.parseInt(text) || 18,
-                          },
+                          ageRange: { ...preferences.ageRange!, min: Number.parseInt(text) || 18 },
                         })
                       }
                       keyboardType="number-pad"
                       placeholder="Min"
-                      className="bg-slate-100 rounded-lg p-3 text-slate-800"
+                      className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-slate-800 font-bold"
                     />
                   </View>
-                  <Text className="text-slate-600">to</Text>
+                  <Text className="text-slate-400 font-bold">to</Text>
                   <View className="flex-1">
                     <TextInput
                       value={preferences.ageRange?.max?.toString()}
                       onChangeText={(text) =>
                         setPreferences({
                           ...preferences,
-                          ageRange: {
-                            ...preferences.ageRange!,
-                            max: Number.parseInt(text) || 99,
-                          },
+                          ageRange: { ...preferences.ageRange!, max: Number.parseInt(text) || 99 },
                         })
                       }
                       keyboardType="number-pad"
                       placeholder="Max"
-                      className="bg-slate-100 rounded-lg p-3 text-slate-800"
+                      className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-slate-800 font-bold"
                     />
                   </View>
                 </View>
               </View>
 
               <View>
-                <Text className="text-sm font-medium text-slate-700 mb-2">
-                  Maximum Distance (miles)
-                </Text>
+                <Text className="text-sm font-bold text-slate-700 mb-3">Max Distance (miles)</Text>
                 <TextInput
                   value={preferences.maxDistance?.toString()}
                   onChangeText={(text) =>
-                    setPreferences({
-                      ...preferences,
-                      maxDistance: Number.parseInt(text) || 50,
-                    })
+                    setPreferences({ ...preferences, maxDistance: Number.parseInt(text) || 50 })
                   }
                   keyboardType="number-pad"
                   placeholder="50"
-                  className="bg-slate-100 rounded-lg p-3 text-slate-800"
+                  className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-slate-800 font-bold"
                 />
               </View>
 
               <Button
-                className="w-full h-12 mt-2"
+                className="w-full h-14 rounded-2xl bg-primary shadow-md"
                 onPress={handleSavePreferences}
                 disabled={loading}
               >
                 <View className="flex-row items-center gap-2">
-                  <Save size={16} color="white" />
-                  <Text className="text-white font-medium">
+                  <Save size={18} color="white" />
+                  <Text className="text-white font-bold text-lg">
                     {loading ? 'Saving...' : 'Save Preferences'}
                   </Text>
                 </View>
@@ -361,34 +338,32 @@ export default function SettingsScreen() {
 
           {/* Subscription Management */}
           {subscription?.is_premium && (
-            <Card className="shadow-lg bg-white/95">
-              <CardHeader>
-                <View className="flex-row items-center gap-2">
-                  <CreditCard size={20} color="#8B5CF6" />
-                  <CardTitle>Subscription</CardTitle>
+            <Card className="shadow-xl bg-white border-0 rounded-[24px]">
+              <CardHeader className="pb-2">
+                <View className="flex-row items-center gap-3">
+                  <CreditCard size={20} color="#9B7EDE" />
+                  <CardTitle className="text-slate-800">Subscription</CardTitle>
                 </View>
               </CardHeader>
               <CardContent className="gap-3">
-                <View className="bg-slate-50 rounded-lg p-3 mb-2">
-                  <Text className="text-sm text-slate-700 font-medium mb-2">
+                <View className="bg-purple-50 border border-purple-100 rounded-2xl p-4 mb-2">
+                  <Text className="text-sm text-primary font-bold mb-1">
                     {`Active: ${subscription?.subscription?.plan_name || 'Premium'}`}
                   </Text>
-                  <Text className="text-xs text-slate-500">
+                  <Text className="text-xs text-slate-500 font-medium">
                     {`Expires: ${subscription?.subscription?.expires_at ? new Date(subscription.subscription.expires_at).toLocaleDateString() : 'N/A'}`}
                   </Text>
                 </View>
                 <Button
                   variant="outline"
-                  className="w-full h-12 border-orange-200 bg-orange-50"
+                  className="w-full h-12 border-orange-200 bg-orange-50 rounded-xl"
                   onPress={handleCancelSubscription}
                   disabled={subscriptionLoading}
                 >
                   <View className="flex-row items-center gap-2">
                     <CreditCard size={18} color="#EA580C" />
-                    <Text className="text-orange-600 font-medium">
-                      {subscriptionLoading
-                        ? 'Canceling...'
-                        : 'Cancel Subscription'}
+                    <Text className="text-orange-600 font-bold">
+                      {subscriptionLoading ? 'Canceling...' : 'Cancel Subscription'}
                     </Text>
                   </View>
                 </Button>
@@ -398,25 +373,23 @@ export default function SettingsScreen() {
 
           {/* Transactions */}
           {lastTransaction && (
-            <Card className="shadow-lg bg-white/95">
-              <CardHeader>
-                <View className="flex-row items-center gap-2">
-                  <CreditCard size={20} color="#8B5CF6" />
-                  <CardTitle>Latest Transaction</CardTitle>
+            <Card className="shadow-xl bg-white border-0 rounded-[24px]">
+              <CardHeader className="pb-2">
+                <View className="flex-row items-center gap-3">
+                  <CreditCard size={20} color="#9B7EDE" />
+                  <CardTitle className="text-slate-800">Latest Transaction</CardTitle>
                 </View>
               </CardHeader>
               <CardContent className="gap-3">
-                <View className="bg-linear-to-r from-slate-50 to-purple-50 rounded-lg p-4">
-                  <View className="flex-row justify-between items-start mb-3">
+                <View className="bg-slate-50 border border-slate-100 rounded-2xl p-5">
+                  <View className="flex-row justify-between items-start mb-4">
                     <View className="flex-1">
-                      <Text className="text-sm font-semibold text-slate-800 mb-1">
+                      <Text className="text-sm font-bold text-slate-800 mb-1">
                         {lastTransaction.plan_type || 'Transaction'}
                       </Text>
-                      <Text className="text-xs text-slate-600">
+                      <Text className="text-xs text-slate-500 font-medium">
                         {lastTransaction.created_at
-                          ? new Date(
-                              lastTransaction.created_at,
-                            ).toLocaleDateString('en-US', {
+                          ? new Date(lastTransaction.created_at).toLocaleDateString('en-US', {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric',
@@ -424,31 +397,25 @@ export default function SettingsScreen() {
                           : 'Date unavailable'}
                       </Text>
                     </View>
-                    <Text className="text-base font-bold text-purple-600">
-                      $
-                      {lastTransaction.amount
-                        ? Number(lastTransaction.amount).toFixed(2)
-                        : '0.00'}
+                    <Text className="text-lg font-black text-primary">
+                      ${lastTransaction.amount ? Number(lastTransaction.amount).toFixed(2) : '0.00'}
                     </Text>
                   </View>
-                  <View className="flex-row items-center gap-2">
+                  <View className="flex-row items-center gap-2 bg-white self-start px-3 py-1 rounded-full border border-slate-100">
                     <View className="w-2 h-2 rounded-full bg-green-500" />
-                    <Text className="text-xs text-slate-600">
-                      {lastTransaction.card_brand || 'Card'} ••••{' '}
-                      {lastTransaction.card_last_4 || '••••'}
+                    <Text className="text-xs text-slate-600 font-bold">
+                      {lastTransaction.card_brand || 'Card'} •••• {lastTransaction.card_last_4 || '••••'}
                     </Text>
                   </View>
                 </View>
                 <Button
                   variant="outline"
-                  className="w-full h-12 bg-transparent border-purple-200"
+                  className="w-full h-14 bg-transparent border-purple-100 rounded-xl"
                   onPress={() => router.push('/settings/transactions')}
                 >
                   <View className="flex-row items-center justify-between w-full px-2">
-                    <Text className="text-purple-600 font-medium">
-                      View All Transactions
-                    </Text>
-                    <ChevronRight size={18} color="#A78BFA" />
+                    <Text className="text-primary font-bold">View All Transactions</Text>
+                    <ChevronRight size={18} color="#9B7EDE" />
                   </View>
                 </Button>
               </CardContent>
@@ -456,31 +423,29 @@ export default function SettingsScreen() {
           )}
 
           {/* Account Actions */}
-          <Card className="shadow-lg bg-white/95">
-            <CardHeader>
-              <CardTitle>Account Actions</CardTitle>
+          <Card className="shadow-xl bg-white border-0 rounded-[24px]">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-slate-800">Account Actions</CardTitle>
             </CardHeader>
             <CardContent className="gap-3">
               <Button
                 variant="outline"
-                className="w-full h-12 border-red-200 bg-red-50"
+                className="w-full h-14 border-red-100 bg-red-50 rounded-xl"
                 onPress={handleCloseAccount}
               >
                 <View className="flex-row items-center gap-2">
                   <Trash2 size={18} color="#DC2626" />
-                  <Text className="text-red-600 font-medium">
-                    Close Account
-                  </Text>
+                  <Text className="text-red-600 font-bold">Close Account</Text>
                 </View>
               </Button>
               <Button
                 variant="outline"
-                className="w-full h-12 border-slate-200 bg-transparent"
+                className="w-full h-14 border-slate-100 bg-transparent rounded-xl"
                 onPress={handleLogout}
               >
                 <View className="flex-row items-center gap-2">
                   <LogOut size={18} color="#64748B" />
-                  <Text className="text-slate-600 font-medium">Logout</Text>
+                  <Text className="text-slate-600 font-bold">Logout</Text>
                 </View>
               </Button>
             </CardContent>
@@ -488,13 +453,10 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
 
-      {/* Edit Profile Modal */}
       <EditProfileModal
         visible={editProfileModalVisible}
         onClose={() => setEditProfileModalVisible(false)}
-        onSave={() => {
-          loadPreferences();
-        }}
+        onSave={() => loadPreferences()}
       />
     </View>
   );

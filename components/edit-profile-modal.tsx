@@ -123,7 +123,7 @@ export function EditProfileModal({
         </View>
 
         {/* Form */}
-        <ScrollView contentContainerClassName="p-4 pb-6">
+        <ScrollView contentContainerClassName="px-6 py-8">
           <View className="gap-6">
             {/* Photo Section */}
             <View>

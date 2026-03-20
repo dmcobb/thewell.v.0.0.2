@@ -4,10 +4,10 @@ import {
   ScrollView,
   Linking,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image } from 'expo-image';
-import { Bell, Settings, Heart, Mail } from 'lucide-react-native';
+import { Heart, Mail, Sparkles } from 'lucide-react-native';
 import { Card, CardContent } from '@/components/ui/card';
 
 export default function EquallyYokedTab() {
@@ -19,7 +19,15 @@ export default function EquallyYokedTab() {
     <View className="flex-1 bg-linear-to-b from-ocean-100 via-ocean-50 to-ocean-100">
       <ScrollView
         className="flex-1"
-        contentContainerClassName="p-4 pb-6 flex-grow justify-center"
+        // Switched to style for better cross-platform consistency with flexGrow
+        contentContainerStyle={{ 
+          paddingHorizontal: 24, 
+          paddingTop: 20, 
+          paddingBottom: 40,
+          flexGrow: 1,
+          justifyContent: 'center' // This works safely with flexGrow: 1
+        }}
+        showsVerticalScrollIndicator={false}
       >
         <View className="gap-6">
           {/* Coming Soon Header */}
@@ -27,63 +35,69 @@ export default function EquallyYokedTab() {
             colors={['#0891B2', '#0284C7', '#0369A1']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            className="rounded-xl overflow-hidden shadow-xl"
+            className="rounded-[32px] overflow-hidden shadow-xl"
           >
-            <View className="p-6 items-center">
-              <Heart size={32} color="white" strokeWidth={1.5} />
-              <Text className="text-2xl font-bold text-white text-center mt-3">
+            <View className="p-8 items-center">
+              <View className="bg-white/20 p-4 rounded-full mb-4">
+                <Heart size={32} color="white" fill="white" />
+              </View>
+              <Text className="text-2xl font-bold text-white text-center tracking-tight">
                 Equally Yoked
               </Text>
-              <Text className="text-sm text-white/90 text-center mt-1">
-                Coming Soon
-              </Text>
+              <View className="flex-row items-center gap-2 mt-2 bg-black/10 px-3 py-1 rounded-full">
+                <Sparkles size={14} color="white" />
+                <Text className="text-xs font-bold text-white uppercase tracking-widest">
+                  Coming Soon
+                </Text>
+              </View>
             </View>
           </LinearGradient>
 
           {/* Main Message Card */}
-          <Card className="shadow-lg bg-white/95">
-            <CardContent className="p-6">
-              <View className="gap-4">
-                <Text className="text-base text-slate-700 leading-relaxed">
-                  We're crafting something special for you! The Well App team is
-                  working diligently to bring you a thoughtful guide on what it
-                  truly feels and looks like to be equally yoked in faith and
-                  love.
+          <Card className="shadow-md bg-white border-0 rounded-[32px] overflow-hidden">
+            <CardContent className="p-8">
+              <View className="gap-5">
+                <Text className="text-lg font-bold text-slate-900 leading-tight">
+                  Crafting a spiritual guide for your journey
+                </Text>
+                
+                <Text className="text-[15px] text-slate-600 leading-6">
+                  The Well App team is working diligently to bring you a thoughtful 
+                  guide on what it truly looks like to be equally yoked in faith and love.
                 </Text>
 
-                <View className="bg-linear-to-r from-ocean-50 to-ocean-100 p-4 rounded-xl border border-purple-200/50">
-                  <Text className="text-sm text-slate-600 leading-relaxed">
-                    This feature will help you understand the deeper spiritual
-                    foundations for meaningful Christian relationships and what
-                    harmony in faith truly means.
+                <View className="bg-ocean-50/50 p-5 rounded-3xl border border-ocean-100">
+                  <Text className="text-sm text-ocean-700 leading-relaxed font-medium">
+                    Discover deeper spiritual foundations for meaningful Christian 
+                    relationships and what harmony in faith truly means.
                   </Text>
                 </View>
 
-                <Text className="text-sm text-slate-600 leading-relaxed">
-                  We believe this tool will enrich your journey toward finding a
-                  partner who shares your spiritual values and commitment to
-                  Christ.
+                <Text className="text-sm text-slate-500 italic leading-relaxed">
+                  "Do not be yoked together with unbelievers. For what do righteousness 
+                  and wickedness have in common?" — 2 Corinthians 6:14
                 </Text>
               </View>
             </CardContent>
           </Card>
 
           {/* Contact Card */}
-          <Card className="shadow-lg bg-linear-to-br from-purple-50 to-ocean-50 border border-purple-200/50">
+          <Card className="shadow-sm bg-purple-50/50 border border-purple-100 rounded-[32px]">
             <CardContent className="p-6">
-              <Text className="text-center text-sm font-semibold text-slate-700 mb-3">
+              <Text className="text-center text-sm font-bold text-purple-900 mb-4">
                 Have thoughts or questions?
               </Text>
               <TouchableOpacity
                 onPress={handleEmailPress}
-                className="flex-row items-center justify-center gap-2 bg-linear-to-r from-ocean-400 to-ocean-500 rounded-lg p-3"
+                className="flex-row items-center justify-center gap-2 bg-ocean-600 rounded-2xl p-4 shadow-sm"
+                activeOpacity={0.8}
               >
                 <Mail size={18} color="white" />
-                <Text className="text-white font-semibold">Contact Us</Text>
+                <Text className="text-white font-bold text-base">Get in Touch</Text>
               </TouchableOpacity>
-              <Text className="text-center text-xs text-slate-600 mt-3">
-                Reach out to us at{' '}
-                <Text className="font-semibold text-ocean-600">
+              <Text className="text-center text-[11px] text-slate-500 mt-4">
+                Reach out to our founders at{' '}
+                <Text className="font-bold text-ocean-600">
                   info@the-wellapp.com
                 </Text>
               </Text>
@@ -91,8 +105,8 @@ export default function EquallyYokedTab() {
           </Card>
 
           {/* Encouragement Footer */}
-          <View className="items-center">
-            <Text className="text-xs text-slate-500 text-center italic">
+          <View className="items-center px-6">
+            <Text className="text-[11px] text-slate-400 text-center font-medium leading-4">
               Thank you for your patience as we build the perfect tools for your
               faith-centered journey.
             </Text>

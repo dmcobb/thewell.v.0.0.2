@@ -71,78 +71,87 @@ export default function AccountEditScreen() {
   const primaryPhoto = user?.photos?.find((p: any) => p.is_primary)?.photo_url || user?.photos?.[0]?.photo_url
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1 bg-slate-50">
       <LinearGradient
-        colors={["#0891B2", "#0284C7", "#8B5CF6", "#0369A1"]}
+        colors={['#9B7EDE', '#8B5CF6', '#7C3AED']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         className="relative overflow-hidden"
       >
-        <View className="px-4 pt-12 pb-4">
+        <View className="px-6 pt-14 pb-6">
           <View className="flex-row items-center justify-between">
-            <TouchableOpacity onPress={() => router.back()}>
+            <TouchableOpacity 
+              onPress={() => router.back()}
+              className="bg-white/20 p-2 rounded-full"
+            >
               <ArrowLeft size={24} color="white" />
             </TouchableOpacity>
-            <Text className="text-xl font-bold text-white">Edit Account</Text>
-            <Button variant="ghost" size="sm" onPress={handleSave} disabled={isSaving}>
+            <Text className="text-2xl font-bold text-white">Edit Account</Text>
+            <TouchableOpacity 
+              onPress={handleSave} 
+              disabled={isSaving}
+              className="bg-white/20 p-2 rounded-full"
+            >
               <Save size={20} color="white" />
-            </Button>
+            </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>
 
-      <ScrollView className="flex-1" contentContainerClassName="p-4 pb-6">
+      <ScrollView className="flex-1" contentContainerClassName="p-5 pb-10">
         {isLoading ? (
           <View className="items-center justify-center py-12">
-            <Text className="text-muted-foreground">Loading your profile...</Text>
+            <Text className="text-slate-400 font-medium">Loading your profile...</Text>
           </View>
         ) : (
-          <View className="gap-4">
-            <Card>
+          <View className="gap-6">
+            <Card className="shadow-xl bg-white border-0 rounded-[24px] overflow-hidden">
               <CardHeader>
-                <CardTitle>Profile Photo</CardTitle>
+                <CardTitle className="text-slate-800">Profile Photo</CardTitle>
               </CardHeader>
               <CardContent className="items-center">
-                <Avatar className="w-32 h-32 mb-4">
-                  {primaryPhoto ? <AvatarImage source={{ uri: primaryPhoto }} /> : null}
-                  <AvatarFallback className="bg-primary">
-                    <Text className="text-white text-3xl font-semibold">{formData.first_name?.[0] || "U"}</Text>
-                  </AvatarFallback>
-                </Avatar>
-                <Button variant="outline">
-                  <Camera size={16} />
-                  <Text className="ml-2">Change Photo</Text>
+                <View className="relative">
+                    <Avatar className="w-32 h-32 mb-4 border-4 border-purple-50">
+                    {primaryPhoto ? <AvatarImage source={{ uri: primaryPhoto }} /> : null}
+                    <AvatarFallback className="bg-primary">
+                        <Text className="text-white text-3xl font-bold">{formData.first_name?.[0] || "U"}</Text>
+                    </AvatarFallback>
+                    </Avatar>
+                </View>
+                <Button variant="outline" className="border-purple-100 bg-purple-50 rounded-xl">
+                  <Camera size={16} color="#8B5CF6" />
+                  <Text className="ml-2 text-primary font-bold">Change Photo</Text>
                 </Button>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="shadow-xl bg-white border-0 rounded-[24px]">
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
+                <CardTitle className="text-slate-800">Basic Information</CardTitle>
               </CardHeader>
               <CardContent className="gap-4">
                 <View>
-                  <Label>First Name</Label>
+                  <Label className="text-slate-500 font-bold ml-1">First Name</Label>
                   <TextInput
-                    className="border border-input rounded-lg px-4 py-3 mt-2"
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 mt-2 text-slate-800 font-medium"
                     value={formData.first_name}
                     onChangeText={(text) => setFormData({ ...formData, first_name: text })}
                     placeholder="Enter your first name"
                   />
                 </View>
                 <View>
-                  <Label>Last Name</Label>
+                  <Label className="text-slate-500 font-bold ml-1">Last Name</Label>
                   <TextInput
-                    className="border border-input rounded-lg px-4 py-3 mt-2"
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 mt-2 text-slate-800 font-medium"
                     value={formData.last_name}
                     onChangeText={(text) => setFormData({ ...formData, last_name: text })}
                     placeholder="Enter your last name"
                   />
                 </View>
                 <View>
-                  <Label>Bio</Label>
+                  <Label className="text-slate-500 font-bold ml-1">Bio</Label>
                   <TextInput
-                    className="border border-input rounded-lg px-4 py-3 mt-2"
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 mt-2 text-slate-800 font-medium"
                     value={formData.bio}
                     onChangeText={(text) => setFormData({ ...formData, bio: text })}
                     placeholder="Tell us about yourself"
@@ -154,24 +163,24 @@ export default function AccountEditScreen() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="shadow-xl bg-white border-0 rounded-[24px]">
               <CardHeader>
-                <CardTitle>Location</CardTitle>
+                <CardTitle className="text-slate-800">Location</CardTitle>
               </CardHeader>
               <CardContent className="gap-4">
                 <View>
-                  <Label>City</Label>
+                  <Label className="text-slate-500 font-bold ml-1">City</Label>
                   <TextInput
-                    className="border border-input rounded-lg px-4 py-3 mt-2"
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 mt-2 text-slate-800 font-medium"
                     value={formData.location_city}
                     onChangeText={(text) => setFormData({ ...formData, location_city: text })}
                     placeholder="Enter your city"
                   />
                 </View>
                 <View>
-                  <Label>State</Label>
+                  <Label className="text-slate-500 font-bold ml-1">State</Label>
                   <TextInput
-                    className="border border-input rounded-lg px-4 py-3 mt-2"
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 mt-2 text-slate-800 font-medium"
                     value={formData.location_state}
                     onChangeText={(text) => setFormData({ ...formData, location_state: text })}
                     placeholder="Enter your state"
@@ -180,42 +189,42 @@ export default function AccountEditScreen() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="shadow-xl bg-white border-0 rounded-[24px]">
               <CardHeader>
-                <CardTitle>Faith & Career</CardTitle>
+                <CardTitle className="text-slate-800">Faith & Career</CardTitle>
               </CardHeader>
               <CardContent className="gap-4">
                 <View>
-                  <Label>Denomination</Label>
+                  <Label className="text-slate-500 font-bold ml-1">Denomination</Label>
                   <TextInput
-                    className="border border-input rounded-lg px-4 py-3 mt-2"
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 mt-2 text-slate-800 font-medium"
                     value={formData.denomination}
                     onChangeText={(text) => setFormData({ ...formData, denomination: text })}
                     placeholder="Enter your denomination"
                   />
                 </View>
                 <View>
-                  <Label>Church Name</Label>
+                  <Label className="text-slate-500 font-bold ml-1">Church Name</Label>
                   <TextInput
-                    className="border border-input rounded-lg px-4 py-3 mt-2"
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 mt-2 text-slate-800 font-medium"
                     value={formData.church_name}
                     onChangeText={(text) => setFormData({ ...formData, church_name: text })}
                     placeholder="Enter your church name"
                   />
                 </View>
                 <View>
-                  <Label>Occupation</Label>
+                  <Label className="text-slate-500 font-bold ml-1">Occupation</Label>
                   <TextInput
-                    className="border border-input rounded-lg px-4 py-3 mt-2"
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 mt-2 text-slate-800 font-medium"
                     value={formData.occupation}
                     onChangeText={(text) => setFormData({ ...formData, occupation: text })}
                     placeholder="Enter your occupation"
                   />
                 </View>
                 <View>
-                  <Label>Education Level</Label>
+                  <Label className="text-slate-500 font-bold ml-1">Education Level</Label>
                   <TextInput
-                    className="border border-input rounded-lg px-4 py-3 mt-2"
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 mt-2 text-slate-800 font-medium"
                     value={formData.education_level}
                     onChangeText={(text) => setFormData({ ...formData, education_level: text })}
                     placeholder="Enter your education level"
@@ -224,8 +233,12 @@ export default function AccountEditScreen() {
               </CardContent>
             </Card>
 
-            <Button className="w-full h-12" onPress={handleSave} disabled={isSaving}>
-              <Text className="text-white font-medium">{isSaving ? "Saving..." : "Save Changes"}</Text>
+            <Button 
+              className="w-full h-14 rounded-2xl bg-primary shadow-lg" 
+              onPress={handleSave} 
+              disabled={isSaving}
+            >
+              <Text className="text-white font-bold text-lg">{isSaving ? "Saving..." : "Save Changes"}</Text>
             </Button>
           </View>
         )}
