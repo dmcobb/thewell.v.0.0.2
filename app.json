@@ -81,6 +81,13 @@
       },
       "router": {
         "origin": "https://api.the-wellapp.com"
+      },
+      "square": {
+        "environment": "sandbox",
+        "sandboxApplicationId": "sandbox-sq0idb-o8qQfJTQnrMerGHvEa_blA",
+        "sandboxLocationId": "LRSKVTACT68WP",
+        "productionApplicationId": "sq0idp-6f2jSuLXvezRf2ruVfhTXQ",
+        "productionLocationId": "L0DJ3P02B294Y"
       }
     },
     "owner": "the-well"

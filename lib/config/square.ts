@@ -1,30 +1,32 @@
-// Frontend Square configuration that dynamically switches between Sandbox and Production
-// based on SQUARE_ENVIRONMENT variable, matching backend approach
+import Constants from 'expo-constants';
 
 export const getSquareConfig = () => {
-  const environment = process.env.EXPO_PUBLIC_SQUARE_ENVIRONMENT || "sandbox"
-  const isProduction = environment === "production"
+  const extra = Constants.expoConfig?.extra;
+  const squareConfig = extra?.square;
+  
+  const environment = squareConfig?.environment || "sandbox";
+  const isProduction = environment === "production";
 
   const applicationId = isProduction
-    ? process.env.EXPO_PUBLIC_SQUARE_APPLICATION_ID
-    : process.env.EXPO_PUBLIC_SQUARE_SANDBOX_APPLICATION_ID
+    ? squareConfig?.productionApplicationId
+    : squareConfig?.sandboxApplicationId;
 
   const locationId = isProduction
-    ? process.env.EXPO_PUBLIC_SQUARE_LOCATION_ID
-    : process.env.EXPO_PUBLIC_SQUARE_SANDBOX_LOCATION_ID
+    ? squareConfig?.productionLocationId
+    : squareConfig?.sandboxLocationId;
 
   if (!applicationId || !locationId) {
     console.error(
-      `[Anointed Innovations] Square is not configured for ${isProduction ? "PRODUCTION" : "SANDBOX"} environment`
-    )
-    return null
+      `[The Well] Square is not configured for ${isProduction ? "PRODUCTION" : "SANDBOX"} environment`
+    );
+    return null;
   }
 
-  console.log(`[Anointed Innovations] ✅ Square initialized in ${isProduction ? "PRODUCTION" : "SANDBOX"} mode`)
+  console.log(`[The Well] ✅ Square initialized in ${isProduction ? "PRODUCTION" : "SANDBOX"} mode`);
 
   return {
     applicationId,
     locationId,
     environment: isProduction ? "production" : "sandbox",
-  }
-}
+  };
+};
