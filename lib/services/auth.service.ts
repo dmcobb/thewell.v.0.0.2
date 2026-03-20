@@ -55,42 +55,31 @@ export interface AuthResponse {
     bio?: string
     locationCity?: string
     locationState?: string
-    photos?: any[]
   }
 }
 
 class AuthService {
-  private transformAuthResponse(backendResponse: BackendAuthResponse): AuthResponse | null {
-    try {
-      if (!backendResponse?.data?.user) {
-        // Return null instead of throwing to avoid crashing the app-wide AuthProvider on mount
-        return null;
-      }
+  private transformAuthResponse(backendResponse: BackendAuthResponse): AuthResponse {
+    const { user, accessToken, refreshToken } = backendResponse.data
+    const profileComplete = user.profile_complete === true || !!(user.date_of_birth && user.gender)
 
-      const { user, accessToken, refreshToken } = backendResponse.data
-      const profileComplete = user.profile_complete === true || !!(user.date_of_birth && user.gender)
-
-      return {
-        success: backendResponse.success,
-        token: accessToken,
-        refreshToken: refreshToken,
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          profileComplete,
-          emailVerified: user.is_verified,
-          dateOfBirth: user.date_of_birth,
-          gender: user.gender,
-          bio: user.bio,
-          locationCity: user.location_city,
-          locationState: user.location_state,
-        },
-      }
-    } catch (error) {
-      console.error("[The Well] Transformation Error:", error)
-      return null;
+    return {
+      success: backendResponse.success,
+      token: accessToken,
+      refreshToken: refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        profileComplete,
+        emailVerified: user.is_verified,
+        dateOfBirth: user.date_of_birth,
+        gender: user.gender,
+        bio: user.bio,
+        locationCity: user.location_city,
+        locationState: user.location_state,
+      },
     }
   }
 
@@ -102,14 +91,13 @@ class AuthService {
 
     const response = this.transformAuthResponse(backendResponse)
 
-    if (response && response.token) {
+    if (response.token) {
       await AsyncStorage.setItem("authToken", response.token)
       await AsyncStorage.setItem("refreshToken", response.refreshToken)
       await AsyncStorage.setItem("user", JSON.stringify(response.user))
-      return response;
     }
 
-    throw new Error("Invalid login response from server.");
+    return response
   }
 
   async register(data: RegisterData): Promise<AuthResponse> {
@@ -120,14 +108,13 @@ class AuthService {
 
     const response = this.transformAuthResponse(backendResponse)
 
-    if (response && response.token) {
+    if (response.token) {
       await AsyncStorage.setItem("authToken", response.token)
       await AsyncStorage.setItem("refreshToken", response.refreshToken)
       await AsyncStorage.setItem("user", JSON.stringify(response.user))
-      return response;
     }
 
-    throw new Error("Registration succeeded but user data was missing.");
+    return response
   }
 
   async logout(): Promise<void> {
@@ -144,15 +131,8 @@ class AuthService {
 
   async getCurrentUser() {
     try {
-      // Check if we have a token first to prevent unnecessary 401 errors on mount
-      const token = await AsyncStorage.getItem("authToken");
-      if (!token) return null;
-
       const response = await apiClient.get<{ success: boolean; data: any }>(API_ENDPOINTS.USERS.PROFILE)
       const user = response.data
-      
-      if (!user) return null;
-
       const transformedUser = {
         id: user.id,
         email: user.email,
@@ -173,8 +153,7 @@ class AuthService {
       await AsyncStorage.setItem("user", JSON.stringify(transformedUser))
       return transformedUser
     } catch (error) {
-      // Log for debugging but return null so the AuthProvider moves to 'not authenticated' state
-      console.log("[The Well] Session check: No active user session.");
+      console.error("[The Well] Error fetching current user from backend:", error)
       const userStr = await AsyncStorage.getItem("user")
       return userStr ? JSON.parse(userStr) : null
     }
