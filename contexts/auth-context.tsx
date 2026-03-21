@@ -57,16 +57,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth();
   }, []);
 
+  /**
+   * NAVIGATION LOGIC
+   * Handles automatic redirection based on auth state and profile completion.
+   * Fixed for iOS to ensure redirection occurs immediately after login state change.
+   */
   useEffect(() => {
     if (isLoading) return;
+
     const currentPath = segments.join('/');
     const inAuthGroup = segments[0] === 'auth';
     const isIndex = currentPath === '' || currentPath === 'index' || !segments.length;
 
-    if (!user && !inAuthGroup && !isIndex) {
-      router.replace('/');
-    } else if (user && isIndex) {
-      router.replace(user.profileComplete ? '/(tabs)' : '/onboarding');
+    // 1. User is NOT authenticated
+    if (!user) {
+      // If they aren't in the auth flow or splash, send them to splash
+      if (!inAuthGroup && !isIndex) {
+        router.replace('/');
+      }
+      return;
+    }
+
+    // 2. User IS authenticated
+    // If they are currently on a 'guest' screen (auth or index), move them to the app
+    if (inAuthGroup || isIndex) {
+      if (user.profileComplete) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/onboarding');
+      }
     }
   }, [user, segments, isLoading]);
 
@@ -88,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const response = await authService.login({ email, password });
+      // Setting user triggers the navigation useEffect
       setUser(response.user);
       
       if (!response.user.profileComplete) {
