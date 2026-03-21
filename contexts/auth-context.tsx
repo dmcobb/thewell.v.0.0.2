@@ -1,8 +1,8 @@
 import type React from 'react';
-import { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../lib/services/auth.service';
 import { useRouter, useSegments } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthContextType {
   user: any | null;
@@ -20,74 +20,91 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any | null>(null);
-  const [isLoading, setIsLoading] = useState(true); 
-  const [onboardingProgress, setOnboardingProgress] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [onboardingProgress, setOnboardingProgress] = useState<any | null>(
+    null,
+  );
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        // Check if token exists before making API call
-        const token = await AsyncStorage.getItem('authToken');
-        
-        if (!token) {
-          console.log('[Anointed Innovations] No token found - user is not logged in');
-          setUser(null);
-          setIsLoading(false);
-          return;
-        }
-        
-        const currentUser = await authService.getCurrentUser();
-        setUser(currentUser);
-        
-        if (!currentUser?.profileComplete) {
-          await loadOnboardingProgress();
-        }
-      } catch (e) {
-        console.error('[Anointed Innovations] Auth init error:', e);
-        // Clear invalid tokens
-        await AsyncStorage.removeItem('authToken');
-        await AsyncStorage.removeItem('refreshToken');
-        setUser(null);
-      } finally {
-        setIsLoading(false); 
-      }
-    };
-    initAuth();
+    loadUser();
   }, []);
 
-  /**
-   * NAVIGATION LOGIC
-   * Handles automatic redirection based on auth state and profile completion.
-   * Fixed for iOS to ensure redirection occurs immediately after login state change.
-   */
   useEffect(() => {
     if (isLoading) return;
 
-    const currentPath = segments.join('/');
     const inAuthGroup = segments[0] === 'auth';
-    const isIndex = currentPath === '' || currentPath === 'index' || !segments.length;
+    const isDataMissing =
+      user &&
+      (!user.locationCity ||
+        !user.locationState ||
+        !user.gender ||
+        !user.dateOfBirth ||
+        !user.phone);
+    const inOnboarding = segments[0] === 'onboarding';
+    const inStartJourney = segments[0] === 'start-journey';
+    const inTabs = segments[0] === '(tabs)';
+    const isVideoProfile = segments[0] === 'profile' && segments[1] === 'video';
+    const inBrowse = segments[0] === 'browse';
+    const inSettings = segments[0] === 'settings';
+    const inChat = segments[0] === 'chat';
+    const inAllowedScreens =
+      inTabs || isVideoProfile || inBrowse || inSettings || inChat;
 
-    // 1. User is NOT authenticated
-    if (!user) {
-      // If they aren't in the auth flow or splash, send them to splash
-      if (!inAuthGroup && !isIndex) {
-        router.replace('/');
-      }
-      return;
-    }
-
-    // 2. User IS authenticated
-    // If they are currently on a 'guest' screen (auth or index), move them to the app
-    if (inAuthGroup || isIndex) {
-      if (user.profileComplete) {
-        router.replace('/(tabs)');
-      } else {
+    if (!user && !inAuthGroup) {
+      // Not authenticated and not in auth screens - redirect to splash
+      router.replace('/');
+    } else if (user) {
+      // User is authenticated - check profile completion
+      if (
+        !user.profileComplete &&
+        !inOnboarding &&
+        !inStartJourney &&
+        isDataMissing
+      ) {
+        // Profile not complete - redirect to start journey
         router.replace('/onboarding');
+      } else if (user.profileComplete && !inAllowedScreens) {
+        router.replace('/(tabs)');
       }
     }
   }, [user, segments, isLoading]);
+
+  const loadUser = async () => {
+    try {
+      // Check for token immediately; only proceed if it exists
+      const token = await AsyncStorage.getItem('authToken');
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      const isAuth = await authService.isAuthenticated();
+
+      if (isAuth) {
+        const response = await authService.getCurrentUser();
+        const currentUser = response.data || response;
+        setUser(currentUser);
+
+        if (!currentUser.profileComplete) {
+          await loadOnboardingProgress();
+        }
+      }
+    } catch (error: any) {
+      console.error('[Anointed Innovations] Error loading user:', error);
+      if (
+        error.message?.includes('timeout') ||
+        error.message?.includes('Network')
+      ) {
+        console.warn(
+          '[Anointed Innovations] Backend unreachable - user will need to login',
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const loadOnboardingProgress = async () => {
     try {
@@ -104,72 +121,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
     try {
       const response = await authService.login({ email, password });
-      // Setting user triggers the navigation useEffect
-      setUser(response.user);
-      
-      if (!response.user.profileComplete) {
+
+      const syncedUser = await authService.syncUserFromBackend();
+
+      if (syncedUser) {
+        setUser(syncedUser);
+      } else {
+        // Fallback to login response if sync fails
+        setUser(response.user);
+      }
+
+      if (!syncedUser?.profileComplete && !response.user.profileComplete) {
         await loadOnboardingProgress();
       }
     } catch (error) {
+      console.error('[Anointed Innovations] Login error:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const register = async (data: any) => {
-    setIsLoading(true);
     try {
       const response = await authService.register(data);
       setUser(response.user);
     } catch (error) {
+      console.error('[Anointed Innovations] Register error:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const logout = async () => {
-    setIsLoading(true);
     try {
       await authService.logout();
       setUser(null);
       setOnboardingProgress(null);
-      router.replace('/');
-    } finally {
-      setIsLoading(false);
+      router.replace('/auth/login');
+    } catch (error) {
+      console.error('[Anointed Innovations] Logout error:', error);
+      throw error;
     }
   };
 
   const refreshUser = async () => {
     try {
-      const u = await authService.getCurrentUser();
-      setUser(u);
+      const response = await authService.getCurrentUser();
+      setUser(response.data || response);
     } catch (error) {
       console.error('[Anointed Innovations] Error refreshing user:', error);
     }
   };
 
-  const value = useMemo(() => ({
-    user,
-    isLoading,
-    isAuthenticated: !!user,
-    login,
-    register,
-    logout,
-    refreshUser,
-    onboardingProgress,
-    loadOnboardingProgress,
-  }), [user, isLoading, onboardingProgress]);
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        login,
+        register,
+        logout,
+        refreshUser,
+        onboardingProgress,
+        loadOnboardingProgress,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 }
