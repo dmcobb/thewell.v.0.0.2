@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0E833B25B8BB8AD28B40BEC8 /* libPods-TheWell.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 37B632C295BFDC5055E47FC6 /* libPods-TheWell.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		3DCE0C1DA78A3FF8B1791737 /* libPods-TheWell.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 81502CEC9B052F07E970D869 /* libPods-TheWell.a */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		4B0952D00E11E85FA40BB075 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80672C65301D643196E3EEC0 /* ExpoModulesProvider.swift */; };
-		B02FE0FB1EF9A55B44C51ADB /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 159ACDAD3AA8DFED28F4CF90 /* PrivacyInfo.xcprivacy */; };
+		71CE54C61B887E708235FE22 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FE4F67B37AFF71A1E761DE2 /* ExpoModulesProvider.swift */; };
+		830BF5E59AD96ACAFA05B428 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2F1F21DC6E43B000FDBAA56B /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -20,13 +20,13 @@
 		13B07F961A680F5B00A75B9A /* TheWell.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TheWell.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = TheWell/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = TheWell/Info.plist; sourceTree = "<group>"; };
-		159ACDAD3AA8DFED28F4CF90 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = TheWell/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		6060B1D9CFE1016D1BED5A3F /* Pods-TheWell.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TheWell.release.xcconfig"; path = "Target Support Files/Pods-TheWell/Pods-TheWell.release.xcconfig"; sourceTree = "<group>"; };
-		80672C65301D643196E3EEC0 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-TheWell/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		81502CEC9B052F07E970D869 /* libPods-TheWell.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-TheWell.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		8F4B26ECA4763B8C38B1EB00 /* Pods-TheWell.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TheWell.debug.xcconfig"; path = "Target Support Files/Pods-TheWell/Pods-TheWell.debug.xcconfig"; sourceTree = "<group>"; };
+		1FE4F67B37AFF71A1E761DE2 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-TheWell/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		2F1F21DC6E43B000FDBAA56B /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = TheWell/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		37B632C295BFDC5055E47FC6 /* libPods-TheWell.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-TheWell.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = TheWell/SplashScreen.storyboard; sourceTree = "<group>"; };
+		ADAD068A95303985180984DB /* Pods-TheWell.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TheWell.release.xcconfig"; path = "Target Support Files/Pods-TheWell/Pods-TheWell.release.xcconfig"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		ECAD0BCAD9E92614CC15B34F /* Pods-TheWell.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TheWell.debug.xcconfig"; path = "Target Support Files/Pods-TheWell/Pods-TheWell.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = TheWell/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* TheWell-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "TheWell-Bridging-Header.h"; path = "TheWell/TheWell-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -37,13 +37,22 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3DCE0C1DA78A3FF8B1791737 /* libPods-TheWell.a in Frameworks */,
+				0E833B25B8BB8AD28B40BEC8 /* libPods-TheWell.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0B75220A354CF082027CEE53 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				ECAD0BCAD9E92614CC15B34F /* Pods-TheWell.debug.xcconfig */,
+				ADAD068A95303985180984DB /* Pods-TheWell.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
 		13B07FAE1A68108700A75B9A /* TheWell */ = {
 			isa = PBXGroup;
 			children = (
@@ -53,28 +62,34 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				159ACDAD3AA8DFED28F4CF90 /* PrivacyInfo.xcprivacy */,
+				2F1F21DC6E43B000FDBAA56B /* PrivacyInfo.xcprivacy */,
 			);
 			name = TheWell;
+			sourceTree = "<group>";
+		};
+		29A6870DB6BE015E5D3DA181 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				41EF501706FF0DEA6E3982E2 /* TheWell */,
+			);
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				81502CEC9B052F07E970D869 /* libPods-TheWell.a */,
+				37B632C295BFDC5055E47FC6 /* libPods-TheWell.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		312D61825707031DC84D1011 /* Pods */ = {
+		41EF501706FF0DEA6E3982E2 /* TheWell */ = {
 			isa = PBXGroup;
 			children = (
-				8F4B26ECA4763B8C38B1EB00 /* Pods-TheWell.debug.xcconfig */,
-				6060B1D9CFE1016D1BED5A3F /* Pods-TheWell.release.xcconfig */,
+				1FE4F67B37AFF71A1E761DE2 /* ExpoModulesProvider.swift */,
 			);
-			name = Pods;
-			path = Pods;
+			name = TheWell;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -91,8 +106,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				312D61825707031DC84D1011 /* Pods */,
-				911A8BA269E1542284BF1143 /* ExpoModulesProviders */,
+				0B75220A354CF082027CEE53 /* Pods */,
+				29A6870DB6BE015E5D3DA181 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -105,22 +120,6 @@
 				13B07F961A680F5B00A75B9A /* TheWell.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		8EF5C614196203CD9695726F /* TheWell */ = {
-			isa = PBXGroup;
-			children = (
-				80672C65301D643196E3EEC0 /* ExpoModulesProvider.swift */,
-			);
-			name = TheWell;
-			sourceTree = "<group>";
-		};
-		911A8BA269E1542284BF1143 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				8EF5C614196203CD9695726F /* TheWell */,
-			);
-			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -139,14 +138,15 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TheWell" */;
 			buildPhases = (
-				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				23D16AAD1488EA8D949E31D2 /* [Expo] Configure project */,
+				DF90CDE1E4F7D07D4983D53F /* [CP] Check Pods Manifest.lock */,
+				50EAB596A0C2C89D816999F9 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				68282C056116E93E2C3C6EA6 /* [CP] Embed Pods Frameworks */,
+				3FDA3DE22F6F091800514C6B /* Square Fix */,
+				BC4C473F0D48AE119DC5D1D6 /* [CP] Embed Pods Frameworks */,
+				BE6D735A4D72A503AEE553EA /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -163,7 +163,8 @@
 		83CBB9F71A601CBA00E9B192 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1130;
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
 						LastSwiftMigration = 1250;
@@ -196,7 +197,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				B02FE0FB1EF9A55B44C51ADB /* PrivacyInfo.xcprivacy in Resources */,
+				830BF5E59AD96ACAFA05B428 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -220,7 +221,7 @@
 			shellPath = /bin/sh;
 			shellScript = "if [[ -f \"$PODS_ROOT/../.xcode.env\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env\"\nfi\nif [[ -f \"$PODS_ROOT/../.xcode.env.local\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.local\"\nfi\n\n# The project root by default is one level up from the ios directory\nexport PROJECT_ROOT=\"$PROJECT_DIR\"/..\n\nif [[ \"$CONFIGURATION\" = *Debug* ]]; then\n  export SKIP_BUNDLING=1\nfi\nif [[ -z \"$ENTRY_FILE\" ]]; then\n  # Set the entry JS file using the bundler's entry resolution.\n  export ENTRY_FILE=\"$(\"$NODE_BINARY\" -e \"require('expo/scripts/resolveAppEntry')\" \"$PROJECT_ROOT\" ios absolute | tail -n 1)\"\nfi\n\nif [[ -z \"$CLI_PATH\" ]]; then\n  # Use Expo CLI\n  export CLI_PATH=\"$(\"$NODE_BINARY\" --print \"require.resolve('@expo/cli', { paths: [require.resolve('expo/package.json')] })\")\"\nfi\nif [[ -z \"$BUNDLE_COMMAND\" ]]; then\n  # Default Expo CLI command for bundling\n  export BUNDLE_COMMAND=\"export:embed\"\nfi\n\n# Source .xcode.env.updates if it exists to allow\n# SKIP_BUNDLING to be unset if needed\nif [[ -f \"$PODS_ROOT/../.xcode.env.updates\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.updates\"\nfi\n# Source local changes to allow overrides\n# if needed\nif [[ -f \"$PODS_ROOT/../.xcode.env.local\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.local\"\nfi\n\n`\"$NODE_BINARY\" --print \"require('path').dirname(require.resolve('react-native/package.json')) + '/scripts/react-native-xcode.sh'\"`\n\n";
 		};
-		08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */ = {
+		3FDA3DE22F6F091800514C6B /* Square Fix */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -228,21 +229,17 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
 			);
-			name = "[CP] Check Pods Manifest.lock";
+			name = "Square Fix";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-TheWell-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
+			shellScript = "#!/bin/bash\necho \"=========================================\"\necho \"🔧 [SQUARE-FIX] Running Square SDK Setup\"\necho \"=========================================\"\n\n# Find the app bundle\nAPP_BUNDLE=\"${CODESIGNING_FOLDER_PATH}\"\nFRAMEWORKS_PATH=\"${APP_BUNDLE}/Frameworks\"\n\necho \"📂 Frameworks path: $FRAMEWORKS_PATH\"\n\nif [ ! -d \"$FRAMEWORKS_PATH\" ]; then\n    echo \"❌ Frameworks directory not found\"\n    exit 1\nfi\n\n# STEP 1: RUN SQUARE'S OFFICIAL SETUP SCRIPT (THIS IS CRITICAL)\necho \"🏃 Running Square SDK setup script...\"\n\"${FRAMEWORKS_PATH}/SquareInAppPaymentsSDK.framework/setup\"\n\n# STEP 2: Remove ONLY the nested Frameworks folders that setup creates\n# (setup creates them, then we clean them up)\nfor framework in \"SquareInAppPaymentsSDK.framework\" \"SquareBuyerVerificationSDK.framework\"; do\n    FRAMEWORK_PATH=\"$FRAMEWORKS_PATH/$framework\"\n    \n    if [ ! -d \"$FRAMEWORK_PATH\" ]; then\n        continue\n    fi\n    \n    echo \"🔍 Processing: $framework\"\n    \n    # Remove nested Frameworks folders (but KEEP the setup script we just ran)\n    find \"$FRAMEWORK_PATH\" -name \"Frameworks\" -type d -not -path \"*CorePaymentCard*\" -exec rm -rf {} + 2>/dev/null || true\n    \n    # NOW sign the framework\n    echo \"  ✍️ Signing $framework...\"\n    /usr/bin/codesign --force --deep --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" \"$FRAMEWORK_PATH\"\ndone\n\n# STEP 3: Make sure CorePaymentCard is signed\nif [ -d \"$FRAMEWORKS_PATH/CorePaymentCard.framework\" ]; then\n    echo \"  ✍️ Signing CorePaymentCard.framework...\"\n    /usr/bin/codesign --force --deep --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" \"$FRAMEWORKS_PATH/CorePaymentCard.framework\"\nfi\n\necho \"✅ [SQUARE-FIX] Completed\"\n";
 		};
-		23D16AAD1488EA8D949E31D2 /* [Expo] Configure project */ = {
+		50EAB596A0C2C89D816999F9 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -266,7 +263,7 @@
 			shellPath = /bin/sh;
 			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-TheWell/expo-configure-project.sh\"\n";
 		};
-		68282C056116E93E2C3C6EA6 /* [CP] Embed Pods Frameworks */ = {
+		BC4C473F0D48AE119DC5D1D6 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -292,7 +289,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TheWell/Pods-TheWell-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
+		BE6D735A4D72A503AEE553EA /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -334,6 +331,28 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TheWell/Pods-TheWell-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		DF90CDE1E4F7D07D4983D53F /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-TheWell-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -342,7 +361,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				4B0952D00E11E85FA40BB075 /* ExpoModulesProvider.swift in Sources */,
+				71CE54C61B887E708235FE22 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -351,24 +370,26 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 8F4B26ECA4763B8C38B1EB00 /* Pods-TheWell.debug.xcconfig */;
+			baseConfigurationReference = ECAD0BCAD9E92614CC15B34F /* Pods-TheWell.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TheWell/TheWell.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 31;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
 				INFOPLIST_FILE = TheWell/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "The Well";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2.2;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -377,6 +398,10 @@
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.thewell.dating.the-wellapp";
 				PRODUCT_NAME = TheWell;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "TheWell/TheWell-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -387,19 +412,21 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6060B1D9CFE1016D1BED5A3F /* Pods-TheWell.release.xcconfig */;
+			baseConfigurationReference = ADAD068A95303985180984DB /* Pods-TheWell.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TheWell/TheWell.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 31;
 				INFOPLIST_FILE = TheWell/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "The Well";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2.2;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -408,6 +435,10 @@
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.thewell.dating.the-wellapp";
 				PRODUCT_NAME = TheWell;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "TheWell/TheWell-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -438,6 +469,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -445,8 +477,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
+				DEVELOPMENT_TEAM = PBPT2F83CJ;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -472,6 +506,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				USE_HERMES = true;
@@ -501,6 +536,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -508,8 +544,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = YES;
+				DEVELOPMENT_TEAM = PBPT2F83CJ;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -527,6 +565,8 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				USE_HERMES = true;
 				VALIDATE_PRODUCT = YES;
