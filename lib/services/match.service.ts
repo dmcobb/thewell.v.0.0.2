@@ -1,25 +1,26 @@
+import { Use } from "react-native-svg"
 import { apiClient } from "../api-client"
 import { API_ENDPOINTS } from "../constants"
+import { UserPhoto, UserWithProfile } from "../types/database.types"
 
-export interface DiscoverUser {
+export interface DiscoverUser extends UserWithProfile {
   id: string
   first_name: string
   last_name: string
   bio: string
+  age: number
+  primary_photo: string | null
+  photos: UserPhoto[] | undefined
+  interests: string[]
   location_city: string
   location_state: string
   date_of_birth: string
-  gender: string
+  gender: 'male' | 'female'
   denomination: string
   occupation: string
   height_cm: number
   profile_video_url: string | null
   profile_video_thumbnail_url: string | null
-  photos: Array<{
-    id: string
-    photo_url: string
-    is_primary: boolean
-  }> | null
   match_score: number
 }
 
