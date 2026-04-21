@@ -19,9 +19,12 @@ import {
   type MatchDetails,
 } from '@/lib/services/match.service';
 import { useRouter } from 'expo-router';
+import { activityLoggerService } from '@/lib/services/activity-logger.service';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function MatchesTab() {
   const router = useRouter();
+  const { user } = useAuth();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,6 +84,14 @@ export default function MatchesTab() {
     try {
       setUnmatching(true);
       await matchService.unmatch(selectedMatch.match_id);
+      // Log activity
+      if (user?.id) {
+        await activityLoggerService.logActivity(user.id, 'unmatch', {
+          match_id: selectedMatch.match_id,
+          target_user_id: selectedMatch.user_id,
+          action: 'unmatch',
+        });
+      }
       setShowMatchModal(false);
       setSelectedMatch(null);
       await fetchMatches();

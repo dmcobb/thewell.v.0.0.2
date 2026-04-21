@@ -6,7 +6,6 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
-  Platform,
 } from 'react-native';
 import {
   Heart,
@@ -18,8 +17,11 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useState, useEffect } from 'react';
 import { matchService, type LikedUser } from '@/lib/services/match.service';
+import { activityLoggerService } from '@/lib/services/activity-logger.service';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function LikesTab() {
+  const { user } = useAuth();
   const [likedUsers, setLikedUsers] = useState<LikedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -65,6 +67,14 @@ export default function LikesTab() {
               setUnlikingId(user.id);
               await matchService.unlikeUser(user.id);
               setLikedUsers(likedUsers.filter((u) => u.id !== user.id));
+              // Log activity
+              if (user?.id) {
+                await activityLoggerService.logActivity(user.id, 'unlike', {
+                  target_user_id: user.id,
+                  action: 'unlike',
+                  user_id: user.id,
+                });
+              }
             } catch (error) {
               console.error('[Anointed Innovations] Error unliking user:', error);
               Alert.alert('Error', 'Failed to unlike user.');

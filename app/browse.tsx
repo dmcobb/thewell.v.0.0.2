@@ -13,13 +13,20 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Heart, X, MessageCircle, Users, ArrowLeft } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { matchService, DiscoverUser } from '@/lib/services/match.service';
+import { adService, type Ad } from '@/lib/services/ad.service';
+import { subscriptionService } from '@/lib/services/subscription.service';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button } from '@/components/ui/button';
+import { EventAd } from '@/components/event-ad';
+import { CampaignAd } from '@/components/campaign-ad';
+import { activityLoggerService } from '@/lib/services/activity-logger.service';
+import { useAuth } from '@/contexts/auth-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function BrowseScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [matches, setMatches] = useState<DiscoverUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -27,9 +34,14 @@ export default function BrowseScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [chatModalVisible, setChatModalVisible] = useState(false);
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [hasAdFree, setHasAdFree] = useState(false);
+  const [adsLoading, setAdsLoading] = useState(true);
 
   useEffect(() => {
     fetchMatches();
+    fetchAds();
+    checkSubscription();
   }, []);
 
   const fetchMatches = async () => {
@@ -47,6 +59,14 @@ export default function BrowseScreen() {
   const handleLike = async (matchId: string) => {
     try {
       const result = await matchService.likeUser(matchId);
+      // Log activity
+      if (user?.id) {
+        await activityLoggerService.logActivity(user.id, 'like', {
+          target_user_id: matchId,
+          action: 'like',
+          is_match: result.isMatch,
+        });
+      }
       if (result.isMatch) {
         const matchedProfile = matches.find(m => m.id === matchId);
         setSelectedMatch(matchedProfile || null);
@@ -73,6 +93,13 @@ export default function BrowseScreen() {
   };
 
   const handleMatchPress = (matchData: DiscoverUser) => {
+    // Log profile view
+    if (user?.id) {
+      activityLoggerService.logActivity(user.id, 'profile_view', {
+        target_user_id: matchData.id,
+        action: 'view_profile',
+      });
+    }
     setSelectedMatch(matchData);
     setModalVisible(true);
   };
@@ -85,6 +112,37 @@ export default function BrowseScreen() {
         params: { matchId: selectedMatchId }
       });
     }
+  };
+
+  const fetchAds = async () => {
+    if (hasAdFree) return;
+    
+    try {
+      setAdsLoading(true);
+      const fetchedAds = await adService.getAds();
+      setAds(fetchedAds);
+    } catch (err) {
+      console.error('[Anointed Innovations] Error loading ads:', err);
+    } finally {
+      setAdsLoading(false);
+    }
+  };
+
+  const checkSubscription = async () => {
+    try {
+      const adFreeStatus = await subscriptionService.hasAdFreeSubscription();
+      setHasAdFree(adFreeStatus);
+    } catch (err) {
+      console.error('[Anointed Innovations] Error checking ad-free status:', err);
+    }
+  };
+
+  const handleAdImpression = (adId: string) => {
+    adService.trackImpression(adId);
+  };
+
+  const handleAdClick = (adId: string) => {
+    adService.trackClick(adId);
   };
 
   // FINAL ROUTING FIX:
@@ -221,28 +279,47 @@ export default function BrowseScreen() {
                 setChatModalVisible(true);
               }}
             >
-              <MessageCircle size={24} color="#0891B2" />
+              <MessageCircle size={24} color="#94a3b8" />
             </TouchableOpacity>
           </View>
 
-          {/* Progress Indicator */}
-          <View className="mt-6 flex-row gap-2">
-            {matches
-              .slice(currentIndex, Math.min(currentIndex + 3, matches.length))
-              .map((_, idx) => (
-                <View
-                  key={idx}
-                  className="h-1 bg-slate-300 rounded-full flex-1"
-                  style={{ opacity: 1 - idx * 0.3 }}
-                />
-              ))}
-          </View>
+          {/* Ads Section - Show every 5th profile card if user doesn't have ad-free */}
+          {!hasAdFree && !loading && currentIndex > 0 && currentIndex % 5 === 0 && (
+            <>
+              {adsLoading ? (
+                <View className="py-8 items-center">
+                  <ActivityIndicator size="large" color="#0891B2" />
+                  <Text className="text-slate-600 mt-2">Loading ads...</Text>
+                </View>
+              ) : (
+                <View className="gap-4 mb-6">
+                  {ads.slice(0, 2).map((ad) => (
+                    <View key={ad.id}>
+                      {adService.isEventAd(ad) ? (
+                        <EventAd
+                          ad={ad}
+                          onImpression={handleAdImpression}
+                          onClick={handleAdClick}
+                        />
+                      ) : adService.isCampaignAd(ad) ? (
+                        <CampaignAd
+                          ad={ad}
+                          onImpression={handleAdImpression}
+                          onClick={handleAdClick}
+                        />
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
         </View>
       )}
 
-      {/* Details Modal */}
+      {/* Profile Modal */}
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}

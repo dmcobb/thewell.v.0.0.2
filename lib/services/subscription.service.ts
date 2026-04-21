@@ -12,6 +12,7 @@ export interface SubscriptionPlan {
     unlimited_likes: boolean
     chat: boolean
     browse: boolean
+    ad_free: boolean
   }
 }
 
@@ -129,6 +130,16 @@ class SubscriptionService {
       API_ENDPOINTS.TRANSACTIONS.LATEST,
     )
     return response.data
+  }
+
+  async hasAdFreeSubscription(): Promise<boolean> {
+    try {
+      const subscriptionStatus = await this.getUserSubscription()
+      return subscriptionStatus.subscription?.features?.ad_free || false
+    } catch (error) {
+      console.error('[SubscriptionService] Error checking ad-free status:', error)
+      return false
+    }
   }
 }
 

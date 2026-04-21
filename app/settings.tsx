@@ -125,18 +125,30 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               setSubscriptionLoading(true);
-              await subscriptionService.cancelSubscription();
+              const response = await subscriptionService.cancelSubscription();
+              if (response.success === false) {
+                Alert.alert(
+                  'Cancellation Failed',
+                  response.message ||
+                    'Failed to cancel subscription with Square. Please try again or contact support.',
+                );
+                return;
+              }
               Alert.alert(
                 'Subscription Canceled',
-                'Your subscription has been canceled',
+                'Your subscription has been canceled successfully',
               );
               await loadSubscription();
-            } catch (err) {
+            } catch (err: any) {
               console.error(
                 '[Anointed Innovations] Error canceling subscription:',
                 err,
               );
-              Alert.alert('Error', 'Failed to cancel subscription');
+              const errorMessage =
+                err?.response?.data?.message ||
+                err?.message ||
+                'Failed to cancel subscription. Please try again or contact support.';
+              Alert.alert('Error', errorMessage);
             } finally {
               setSubscriptionLoading(false);
             }

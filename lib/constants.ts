@@ -119,4 +119,9 @@ export const API_ENDPOINTS = {
     CREATE_PAYMENT: "/subscriptions/create-payment",
     VERIFY_PAYMENT: (paymentId: string) => `/subscriptions/verify-payment/${paymentId}`,
   },
+  // Moderation
+  MODERATION: {
+    LOG_ACTIVITY: "/moderation/log-activity",
+    GET_LOGS: "/moderation/logs",
+  },
 }

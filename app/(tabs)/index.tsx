@@ -21,7 +21,11 @@ import { Badge } from '@/components/ui/badge';
 import { VideoPlayer } from '@/components/video-player';
 import { useState, useEffect } from 'react';
 import { matchService, type DiscoverUser } from '@/lib/services/match.service';
+import { adService, type Ad } from '@/lib/services/ad.service';
+import { subscriptionService } from '@/lib/services/subscription.service';
 import { useRouter } from 'expo-router';
+import { EventAd } from '@/components/event-ad';
+import { CampaignAd } from '@/components/campaign-ad';
 
 export default function DiscoverTab() {
   const router = useRouter();
@@ -30,6 +34,9 @@ export default function DiscoverTab() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [hasAdFree, setHasAdFree] = useState(false);
+  const [adsLoading, setAdsLoading] = useState(true);
 
   const loadMatches = async (isRefreshing = false) => {
     try {
@@ -107,6 +114,47 @@ export default function DiscoverTab() {
     }
     return age;
   };
+
+  const loadAds = async () => {
+    if (hasAdFree) return;
+    
+    try {
+      setAdsLoading(true);
+      const fetchedAds = await adService.getAds();
+      setAds(fetchedAds);
+    } catch (err) {
+      console.error('[Anointed Innovations] Error loading ads:', err);
+    } finally {
+      setAdsLoading(false);
+    }
+  };
+
+  const checkAdFreeStatus = async () => {
+    try {
+      const adFreeStatus = await subscriptionService.hasAdFreeSubscription();
+      setHasAdFree(adFreeStatus);
+    } catch (err) {
+      console.error('[Anointed Innovations] Error checking ad-free status:', err);
+    }
+  };
+
+  const handleAdImpression = (adId: string) => {
+    adService.trackImpression(adId);
+  };
+
+  const handleAdClick = (adId: string) => {
+    adService.trackClick(adId);
+  };
+
+  useEffect(() => {
+    checkAdFreeStatus();
+  }, []);
+
+  useEffect(() => {
+    if (!hasAdFree) {
+      loadAds();
+    }
+  }, [hasAdFree]);
 
   return (
     <View className="flex-1 bg-linear-to-b from-ocean-100 via-ocean-50 to-ocean-100">
@@ -384,6 +432,38 @@ export default function DiscoverTab() {
                   </View>
                 </CardContent>
               </Card>
+            </>
+          )}
+
+          {/* Ads Section - Show every 3rd profile card if user doesn't have ad-free */}
+          {!hasAdFree && !loading && !error && currentMatch && currentIndex > 0 && currentIndex % 3 === 0 && (
+            <>
+              {adsLoading ? (
+                <View className="py-8 items-center">
+                  <ActivityIndicator size="large" color="#0891B2" />
+                  <Text className="text-slate-600 mt-2">Loading ads...</Text>
+                </View>
+              ) : (
+                <View className="gap-4">
+                  {ads.slice(0, 2).map((ad) => (
+                    <View key={ad.id}>
+                      {adService.isEventAd(ad) ? (
+                        <EventAd
+                          ad={ad}
+                          onImpression={handleAdImpression}
+                          onClick={handleAdClick}
+                        />
+                      ) : adService.isCampaignAd(ad) ? (
+                        <CampaignAd
+                          ad={ad}
+                          onImpression={handleAdImpression}
+                          onClick={handleAdClick}
+                        />
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              )}
             </>
           )}
 
