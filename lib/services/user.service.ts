@@ -2,6 +2,8 @@ import { apiClient } from "@/lib/api-client"
 import { API_ENDPOINTS } from "@/lib/constants"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
+const isDevelopment = process.env.NODE_ENV === 'development'
+
 export interface UserProfile {
   id: string
   email: string
@@ -232,7 +234,6 @@ class UserService {
     const response = await apiClient.delete<{ success: boolean; message: string }>(API_ENDPOINTS.USERS.DELETE, { password, reason })
     return response || { success: false, message: "Account deletion failed" }
   }
-
   async saveOnboardingProgress(progress: OnboardingProgress): Promise<{ success: boolean; message: string }> {
     try {
       const response = await apiClient.post<{ success: boolean; message: string }>(API_ENDPOINTS.USERS.SAVE_ONBOARDING_PROGRESS, progress)
@@ -243,7 +244,9 @@ class UserService {
         error.message?.includes("Route not found") ||
         error.message?.includes("HTML instead of JSON")
       ) {
-        console.log("[Anointed Innovations] Onboarding progress endpoint not available - progress not saved")
+        if (isDevelopment) {
+          console.log("[Anointed Innovations] Onboarding progress endpoint not available - progress not saved")
+        }
         return { success: false, message: "Endpoint not available" }
       }
       throw error
@@ -262,10 +265,14 @@ class UserService {
         error.message?.includes("Route not found") ||
         error.message?.includes("HTML instead of JSON")
       ) {
-        console.log("[Anointed Innovations] Onboarding progress endpoint not implemented yet - starting fresh")
+        if (isDevelopment) {
+          console.log("[Anointed Innovations] Onboarding progress endpoint not implemented yet - starting fresh")
+        }
         return null
       }
-      console.log("[Anointed Innovations] No saved onboarding progress found")
+      if (isDevelopment) {
+        console.log("[Anointed Innovations] No saved onboarding progress found")
+      }
       return null
     }
   }
@@ -280,7 +287,9 @@ class UserService {
         error.message?.includes("Route not found") ||
         error.message?.includes("HTML instead of JSON")
       ) {
-        console.log("[Anointed Innovations] Onboarding progress endpoint not available - nothing to clear")
+        if (isDevelopment) {
+          console.log("[Anointed Innovations] Onboarding progress endpoint not available - nothing to clear")
+        }
         return { success: true, message: "Nothing to clear" }
       }
       throw error

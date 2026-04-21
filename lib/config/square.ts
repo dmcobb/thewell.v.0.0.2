@@ -1,9 +1,11 @@
 import Constants from 'expo-constants';
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 export const getSquareConfig = () => {
   const extra = Constants.expoConfig?.extra;
   const squareConfig = extra?.square;
-  
+
   const environment = squareConfig?.environment || "sandbox";
   const isProduction = environment === "production";
 
@@ -16,13 +18,17 @@ export const getSquareConfig = () => {
     : squareConfig?.sandboxLocationId;
 
   if (!applicationId || !locationId) {
-    console.error(
-      `[The Well] Square is not configured for ${isProduction ? "PRODUCTION" : "SANDBOX"} environment`
-    );
+    if (isDevelopment) {
+      console.error(
+        `[The Well] Square is not configured for ${isProduction ? "PRODUCTION" : "SANDBOX"} environment`
+      );
+    }
     return null;
   }
 
-  console.log(`[The Well] ✅ Square initialized in ${isProduction ? "PRODUCTION" : "SANDBOX"} mode`);
+  if (isDevelopment) {
+    console.log(`[The Well] Square initialized in ${isProduction ? "PRODUCTION" : "SANDBOX"} mode`);
+  }
 
   return {
     applicationId,

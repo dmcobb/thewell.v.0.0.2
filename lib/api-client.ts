@@ -2,6 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { API_BASE_URL, API_ENDPOINTS } from "@/lib/constants"
 import { Platform } from "react-native"
 
+const isDevelopment = process.env.NODE_ENV === 'development'
+
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean
   timeout?: number
@@ -22,7 +24,9 @@ class ApiClient {
     try {
       return await AsyncStorage.getItem("authToken")
     } catch (error) {
-      console.error("[Anointed Innovations] Error getting auth token:", error)
+      if (isDevelopment) {
+        console.error("[Anointed Innovations] Error getting auth token:", error)
+      }
       return null
     }
   }

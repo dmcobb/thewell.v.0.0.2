@@ -30,11 +30,14 @@
         "resourceClass": "medium",
         "buildConfiguration": "Release"
       },
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
-        "NODE_ENV": "development",
-        "EXPO_PUBLIC_SQUARE_ENVIRONMENT": "sandbox",
-        "EXPO_PUBLIC_SQUARE_SANDBOX_LOCATION_ID": "LRSKVTACT68WP",
-        "EXPO_PUBLIC_SQUARE_SANDBOX_APPLICATION_ID": "sandbox-sq0idb-o8qQfJTQnrMerGHvEa_blA",
+        "NODE_ENV": "production",
+        "EXPO_PUBLIC_SQUARE_ENVIRONMENT": "production",
+        "EXPO_PUBLIC_SQUARE_APPLICATION_ID": "sq0idp-6f2jSuLXvezRf2ruVfhTXQ",
+        "EXPO_PUBLIC_SQUARE_LOCATION_ID": "L0DJ3P02B294Y",
         "EAS_BUILD_DISABLE_COCOAPODS_CACHE": "1",
         "EXPO_NO_CAPABILITY_SYNC": "1"
       },

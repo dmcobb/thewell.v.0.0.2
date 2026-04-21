@@ -83,7 +83,7 @@
         "origin": "https://api.the-wellapp.com"
       },
       "square": {
-        "environment": "sandbox",
+        "environment": "production",
         "sandboxApplicationId": "sandbox-sq0idb-o8qQfJTQnrMerGHvEa_blA",
         "sandboxLocationId": "LRSKVTACT68WP",
         "productionApplicationId": "sq0idp-6f2jSuLXvezRf2ruVfhTXQ",
