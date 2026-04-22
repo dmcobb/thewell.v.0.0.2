@@ -84,11 +84,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (isAuth) {
         const response = await authService.getCurrentUser();
-        const currentUser = response.data || response;
-        setUser(currentUser);
+        if (response) {
+          const currentUser = response.data || response;
+          setUser(currentUser);
 
-        if (!currentUser.profileComplete) {
-          await loadOnboardingProgress();
+          if (!currentUser.profileComplete) {
+            await loadOnboardingProgress();
+          }
         }
       }
     } catch (error: any) {

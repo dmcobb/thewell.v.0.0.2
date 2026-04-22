@@ -130,8 +130,22 @@ class ApiClient {
          throw new Error(`Server returned non-JSON response (${response.status})`)
       }
 
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.message || data.error || "Request failed")
+      const responseClone = response.clone()
+      let data: any = null
+      try {
+        data = await response.json()
+      } catch (parseError) {
+        const text = await responseClone.text().catch(() => null)
+        const message = text || `Request failed (${response.status})`
+        throw new Error(message)
+      }
+
+      if (!response.ok) {
+        const errorMessage =
+          data?.message || data?.error || `Request failed (${response.status})`
+        throw new Error(errorMessage)
+      }
+
       return data
     } catch (error: any) {
       throw error

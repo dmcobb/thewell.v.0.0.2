@@ -105,7 +105,7 @@ export const API_ENDPOINTS = {
   },
   // Ads
   ADS: {
-    GET_ADS: "/ads",
+    GET_ADS: "/ads/feed",
     TRACK_IMPRESSION: (id: string) => `/ads/${id}/impression`,
     TRACK_CLICK: (id: string) => `/ads/${id}/click`,
   },

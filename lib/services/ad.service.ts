@@ -1,5 +1,6 @@
 import { apiClient } from "../api-client"
 import { API_ENDPOINTS } from "../constants"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 export interface Ad {
   id: string
@@ -48,11 +49,37 @@ export interface AdResponse {
 class AdService {
   async getAds(): Promise<Ad[]> {
     try {
-      const response = await apiClient.get<AdResponse>(API_ENDPOINTS.ADS.GET_ADS)
+      // Check if user has ad-free subscription
+      const hasAdFreeSubscription = await this.checkAdFreeSubscription()
+      if (hasAdFreeSubscription) {
+        console.log('[AdService] User has ad-free subscription, returning empty ads')
+        return []
+      }
+
+      const response = await apiClient.get<AdResponse | Ad[]>(API_ENDPOINTS.ADS.GET_ADS, {
+        requiresAuth: false,
+      })
+
+      if (Array.isArray(response)) {
+        return response
+      }
+
       return response?.data || []
     } catch (error) {
       console.error('[AdService] Error fetching ads:', error)
       return []
+    }
+  }
+
+  private async checkAdFreeSubscription(): Promise<boolean> {
+    try {
+      const subscriptionStr = await AsyncStorage.getItem('subscription')
+      if (!subscriptionStr) return false
+      
+      const subscription = JSON.parse(subscriptionStr)
+      return subscription?.hasAdFreeAccess || subscription?.plan === 'premium' || subscription?.plan === 'vip'
+    } catch (error) {
+      return false
     }
   }
 
