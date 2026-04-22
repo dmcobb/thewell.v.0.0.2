@@ -62,8 +62,7 @@ fi
 echo "🏃 Running Square SDK setup script..."
 "\${FRAMEWORKS_PATH}/SquareInAppPaymentsSDK.framework/setup"
 
-# STEP 2: Remove ONLY the nested Frameworks folders that setup creates
-# (setup creates them, then we clean them up)
+# STEP 2: Remove ONLY the nested Frameworks folders (but keep the framework files)
 for framework in "SquareInAppPaymentsSDK.framework" "SquareBuyerVerificationSDK.framework"; do
     FRAMEWORK_PATH="\$FRAMEWORKS_PATH/\$framework"
     
@@ -73,7 +72,7 @@ for framework in "SquareInAppPaymentsSDK.framework" "SquareBuyerVerificationSDK.
     
     echo "🔍 Processing: \$framework"
     
-    # Remove nested Frameworks folders (but KEEP the setup script we just ran)
+    # Remove nested Frameworks folders (but KEEP CorePaymentCard)
     find "\$FRAMEWORK_PATH" -name "Frameworks" -type d -not -path "*CorePaymentCard*" -exec rm -rf {} + 2>/dev/null || true
     
     # NOW sign the framework
@@ -92,17 +91,22 @@ echo "✅ [SQUARE-FIX] Completed"
         }
       );
 
-      // Get the phase ID and move Square Fix to run LAST in build phases
+      // Get the phase ID and reorder after Embed Frameworks
       const phaseId = Array.isArray(phase) ? phase[0] : phase;
       const buildPhases = target.buildPhases.map(phase => phase.value);
+      
+      const embedIndex = buildPhases.findIndex(phaseUuid => {
+        const phaseObj = xcodeProject.getPBXObjectByUUID(phaseUuid);
+        return phaseObj && phaseObj.isa === 'PBXCopyFilesBuildPhase' && phaseObj.name === 'Embed Frameworks';
+      });
 
       const fixIndex = buildPhases.findIndex(phaseUuid => phaseUuid === phaseId);
 
-      if (fixIndex !== -1 && fixIndex !== buildPhases.length - 1) {
+      if (embedIndex !== -1 && fixIndex !== -1 && fixIndex > embedIndex + 1) {
         buildPhases.splice(fixIndex, 1);
-        buildPhases.push(phaseId);
+        buildPhases.splice(embedIndex + 1, 0, phaseId);
         target.buildPhases = buildPhases.map(phaseUuid => ({ value: phaseUuid, comment: null }));
-        console.log(" [withSquareFix] Build phase moved to LAST position");
+        console.log("✅ [withSquareFix] Build phases reordered");
       }
     }
 
