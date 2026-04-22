@@ -57,7 +57,7 @@ class AdService {
       }
 
       const response = await apiClient.get<AdResponse | Ad[]>(API_ENDPOINTS.ADS.GET_ADS, {
-        requiresAuth: false,
+        requiresAuth: true,
       })
 
       if (Array.isArray(response)) {
