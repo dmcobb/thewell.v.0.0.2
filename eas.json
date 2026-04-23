@@ -9,7 +9,7 @@
       "distribution": "internal",
       "android": {
         "gradleCommand": ":app:assembleDebug",
-        "track": "internal"
+        "buildType": "app-bundle"
       },
       "ios": {
         "simulator": true
@@ -17,7 +17,7 @@
     },
     "preview": {
       "android": {
-        "track": "internal"
+        "buildType": "app-bundle"
       },
       "distribution": "internal",
       "autoIncrement": true,
@@ -31,7 +31,7 @@
         "buildConfiguration": "Release"
       },
       "android": {
-        "track": "production"
+        "buildType": "app-bundle"
       },
       "env": {
         "NODE_ENV": "production",
