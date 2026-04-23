@@ -159,22 +159,36 @@ export default function SettingsScreen() {
   };
 
   const handleCloseAccount = () => {
-    Alert.alert(
+    Alert.prompt(
       'Close Account',
-      'Are you sure you want to close your account? This action cannot be undone.',
+      'To delete your account, please enter your password. This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Close Account',
+          text: 'Delete Account',
           style: 'destructive',
-          onPress: async () => {
-            // TODO: Add close account API call
-            Alert.alert('Account Closed', 'Your account has been closed');
-            await logout();
-            router.replace('/auth/login');
+          onPress: async (password?: string) => {
+            if (!password) {
+              Alert.alert('Error', 'Password is required to delete your account');
+              return;
+            }
+            try {
+              const response = await userService.deleteAccount(password);
+              if (response.success) {
+                Alert.alert('Account Deleted', 'Your account has been permanently deleted');
+                await logout();
+                router.replace('/auth/login');
+              } else {
+                Alert.alert('Deletion Failed', response.message || 'Failed to delete account. Please try again.');
+              }
+            } catch (err: any) {
+              console.error('[Anointed Innovations] Error deleting account:', err);
+              Alert.alert('Error', err?.message || 'Failed to delete account. Please try again.');
+            }
           },
         },
       ],
+      'secure-text',
     );
   };
 
