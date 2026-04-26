@@ -295,6 +295,29 @@ class UserService {
       throw error
     }
   }
+
+  async reportUser(userId: string, reason: string, description?: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+      API_ENDPOINTS.USERS.REPORT_USER(userId),
+      { reason, description }
+    )
+    return response
+  }
+
+  async blockUser(userId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+      API_ENDPOINTS.USERS.BLOCK_USER(userId),
+      { reason }
+    )
+    return response
+  }
+
+  async unblockUser(userId: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.delete<{ success: boolean; message: string }>(
+      API_ENDPOINTS.USERS.UNBLOCK_USER(userId)
+    )
+    return response
+  }
 }
 
 export const userService = new UserService()

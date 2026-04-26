@@ -7,10 +7,11 @@ import {
   ScrollView,
   Image,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Card, CardContent } from '@/components/ui/card';
-import { Heart, X, MessageCircle, Users, ArrowLeft } from 'lucide-react-native';
+import { Heart, X, MessageCircle, Users, ArrowLeft, Flag, ShieldOff, MoreVertical } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { matchService, DiscoverUser } from '@/lib/services/match.service';
 import { adService, type Ad } from '@/lib/services/ad.service';
@@ -21,6 +22,7 @@ import { EventAd } from '@/components/event-ad';
 import { CampaignAd } from '@/components/campaign-ad';
 import { activityLoggerService } from '@/lib/services/activity-logger.service';
 import { useAuth } from '@/contexts/auth-context';
+import { userService } from '@/lib/services/user.service';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -37,6 +39,9 @@ export default function BrowseScreen() {
   const [ads, setAds] = useState<Ad[]>([]);
   const [hasAdFree, setHasAdFree] = useState(false);
   const [adsLoading, setAdsLoading] = useState(true);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [selectedReportReason, setSelectedReportReason] = useState<string | null>(null);
+  const [actionMenuVisible, setActionMenuVisible] = useState(false);
 
   useEffect(() => {
     fetchMatches();
@@ -325,12 +330,19 @@ export default function BrowseScreen() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View className="flex-1 bg-white pt-12">
-          <TouchableOpacity
-            className="px-4 py-2"
-            onPress={() => setModalVisible(false)}
-          >
-            <Text className="text-primary font-semibold text-lg">Close</Text>
-          </TouchableOpacity>
+          <View className="flex-row justify-between items-center px-4 py-2">
+            <TouchableOpacity
+              onPress={() => setModalVisible(false)}
+            >
+              <Text className="text-primary font-semibold text-lg">Close</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setActionMenuVisible(true)}
+              className="p-2"
+            >
+              <MoreVertical size={24} color="#64748B" />
+            </TouchableOpacity>
+          </View>
 
           <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
             <View style={{ height: 450 }} className="bg-slate-200">
@@ -417,6 +429,156 @@ export default function BrowseScreen() {
             >
               <Heart size={24} color="white" fill="white" />
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Action Menu Modal (Report/Block) */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={actionMenuVisible}
+        onRequestClose={() => setActionMenuVisible(false)}
+      >
+        <TouchableOpacity
+          className="flex-1 bg-black/50 justify-end"
+          activeOpacity={1}
+          onPress={() => setActionMenuVisible(false)}
+        >
+          <View className="bg-white rounded-t-3xl px-6 py-8">
+            <Text className="text-lg font-bold text-slate-800 mb-4">Actions</Text>
+
+            <TouchableOpacity
+              className="flex-row items-center py-4 border-b border-slate-100"
+              onPress={() => {
+                setActionMenuVisible(false);
+                setReportModalVisible(true);
+              }}
+            >
+              <Flag size={22} color="#f59e0b" />
+              <View className="ml-4 flex-1">
+                <Text className="text-base font-semibold text-slate-800">Report User</Text>
+                <Text className="text-sm text-slate-500">Flag objectionable content or behavior</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="flex-row items-center py-4 border-b border-slate-100"
+              onPress={() => {
+                setActionMenuVisible(false);
+                if (!selectedMatch) return;
+                Alert.alert(
+                  'Block User',
+                  `Are you sure you want to block ${selectedMatch.first_name}? They will be removed from your feed immediately and our moderation team will be notified.`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Block',
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          await userService.blockUser(selectedMatch.id, 'Blocked from browse');
+                          if (user?.id) {
+                            await activityLoggerService.logBlock(user.id, selectedMatch.id, 'Blocked from browse');
+                          }
+                          Alert.alert('Blocked', `${selectedMatch.first_name} has been blocked and removed from your feed.`);
+                          setModalVisible(false);
+                          handleSwipeNext();
+                        } catch (error: any) {
+                          Alert.alert('Error', error.message || 'Failed to block user. Please try again.');
+                        }
+                      },
+                    },
+                  ]
+                );
+              }}
+            >
+              <ShieldOff size={22} color="#ef4444" />
+              <View className="ml-4 flex-1">
+                <Text className="text-base font-semibold text-red-600">Block User</Text>
+                <Text className="text-sm text-slate-500">Remove from your feed and notify moderators</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="mt-4 bg-slate-100 rounded-full py-3 items-center"
+              onPress={() => setActionMenuVisible(false)}
+            >
+              <Text className="text-slate-600 font-semibold">Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={reportModalVisible}
+        onRequestClose={() => setReportModalVisible(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-3xl px-6 py-8 max-h-[80%]">
+            <Text className="text-xl font-bold text-slate-800 mb-2">Report {selectedMatch?.first_name}</Text>
+            <Text className="text-sm text-slate-500 mb-6">Select a reason for your report. Our team will review it within 24 hours.</Text>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {[
+                { key: 'inappropriate_content', label: 'Inappropriate Content', desc: 'Sexually explicit or offensive material' },
+                { key: 'harassment', label: 'Harassment or Bullying', desc: 'Threatening or abusive behavior' },
+                { key: 'fake_profile', label: 'Fake Profile', desc: 'Impersonation or misleading information' },
+                { key: 'spam', label: 'Spam or Scam', desc: 'Unsolicited or fraudulent activity' },
+                { key: 'hate_speech', label: 'Hate Speech', desc: 'Discriminatory or hateful content' },
+                { key: 'other', label: 'Other', desc: 'Another reason not listed above' },
+              ].map((reason) => (
+                <TouchableOpacity
+                  key={reason.key}
+                  className={`py-4 px-4 border rounded-xl mb-3 ${
+                    selectedReportReason === reason.key
+                      ? 'border-primary bg-primary/5'
+                      : 'border-slate-200'
+                  }`}
+                  onPress={() => setSelectedReportReason(reason.key)}
+                >
+                  <Text className={`text-base font-semibold ${
+                    selectedReportReason === reason.key ? 'text-primary' : 'text-slate-800'
+                  }`}>{reason.label}</Text>
+                  <Text className="text-sm text-slate-500">{reason.desc}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View className="flex-row gap-3 mt-4">
+              <TouchableOpacity
+                className="flex-1 bg-slate-100 rounded-full py-3 items-center"
+                onPress={() => {
+                  setReportModalVisible(false);
+                  setSelectedReportReason(null);
+                }}
+              >
+                <Text className="text-slate-600 font-semibold">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className={`flex-1 rounded-full py-3 items-center ${selectedReportReason ? 'bg-red-500' : 'bg-slate-300'}`}
+                disabled={!selectedReportReason}
+                onPress={async () => {
+                  if (!selectedMatch || !selectedReportReason) return;
+                  try {
+                    await userService.reportUser(selectedMatch.id, selectedReportReason, `Reported from browse profile`);
+                    if (user?.id) {
+                      await activityLoggerService.logReport(user.id, selectedMatch.id, selectedReportReason, 'Reported from browse profile');
+                    }
+                    Alert.alert('Report Submitted', 'Thank you for helping keep The Well safe. Our team will review your report within 24 hours.');
+                    setReportModalVisible(false);
+                    setSelectedReportReason(null);
+                  } catch (error: any) {
+                    Alert.alert('Error', error.message || 'Failed to submit report. Please try again.');
+                  }
+                }}
+              >
+                <Text className="text-white font-semibold">Submit Report</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

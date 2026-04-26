@@ -7,16 +7,19 @@ import {
   Platform,
   ActivityIndicator,
   FlatList,
-  Dimensions,
+  Alert,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { messageService, type Message } from '@/lib/services/message.service';
 import { matchService, type MatchDetails } from '@/lib/services/match.service';
 import { socketService } from '@/lib/services/socket.service';
 import { useAuth } from '@/contexts/auth-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import { userService } from '@/lib/services/user.service';
+import { activityLoggerService } from '@/lib/services/activity-logger.service';
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -31,6 +34,9 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [actionMenuVisible, setActionMenuVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [selectedReportReason, setSelectedReportReason] = useState<string | null>(null);
   
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -201,7 +207,159 @@ export default function ChatScreen() {
             </Text>
           </View>
         </View>
+
+        <TouchableOpacity onPress={() => setActionMenuVisible(true)} style={{ padding: 8 }}>
+          <Ionicons name="ellipsis-vertical" size={22} color={theme.textMuted} />
+        </TouchableOpacity>
       </View>
+
+      {/* Action Menu Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={actionMenuVisible}
+        onRequestClose={() => setActionMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+          activeOpacity={1}
+          onPress={() => setActionMenuVisible(false)}
+        >
+          <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 24, paddingVertical: 32 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.textMain, marginBottom: 16 }}>Actions</Text>
+
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}
+              onPress={() => {
+                setActionMenuVisible(false);
+                setReportModalVisible(true);
+              }}
+            >
+              <Ionicons name="flag-outline" size={22} color="#f59e0b" />
+              <View style={{ marginLeft: 16, flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: theme.textMain }}>Report User</Text>
+                <Text style={{ fontSize: 13, color: theme.textMuted }}>Flag objectionable content or behavior</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}
+              onPress={() => {
+                setActionMenuVisible(false);
+                const matchedUserId = receiverInfo?.user_id;
+                if (!matchedUserId) return;
+                Alert.alert(
+                  'Block User',
+                  `Are you sure you want to block ${receiverInfo?.first_name}? They will be removed from your matches and our moderation team will be notified.`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Block',
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          await userService.blockUser(matchedUserId, 'Blocked from chat');
+                          if (user?.id) {
+                            await activityLoggerService.logBlock(user.id, matchedUserId, 'Blocked from chat');
+                          }
+                          Alert.alert('Blocked', `${receiverInfo?.first_name} has been blocked.`, [
+                            { text: 'OK', onPress: () => router.back() }
+                          ]);
+                        } catch (error: any) {
+                          Alert.alert('Error', error.message || 'Failed to block user.');
+                        }
+                      },
+                    },
+                  ]
+                );
+              }}
+            >
+              <Ionicons name="shield-outline" size={22} color="#ef4444" />
+              <View style={{ marginLeft: 16, flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#ef4444' }}>Block User</Text>
+                <Text style={{ fontSize: 13, color: theme.textMuted }}>Remove from matches and notify moderators</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ marginTop: 16, backgroundColor: '#F1F5F9', borderRadius: 24, paddingVertical: 12, alignItems: 'center' }}
+              onPress={() => setActionMenuVisible(false)}
+            >
+              <Text style={{ color: theme.textMuted, fontWeight: '600' }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={reportModalVisible}
+        onRequestClose={() => setReportModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 24, paddingVertical: 32, maxHeight: '80%' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.textMain, marginBottom: 8 }}>Report {receiverInfo?.first_name}</Text>
+            <Text style={{ fontSize: 13, color: theme.textMuted, marginBottom: 24 }}>Select a reason for your report. Our team will review it within 24 hours.</Text>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {[
+                { key: 'inappropriate_content', label: 'Inappropriate Content', desc: 'Sexually explicit or offensive material' },
+                { key: 'harassment', label: 'Harassment or Bullying', desc: 'Threatening or abusive behavior' },
+                { key: 'fake_profile', label: 'Fake Profile', desc: 'Impersonation or misleading information' },
+                { key: 'spam', label: 'Spam or Scam', desc: 'Unsolicited or fraudulent activity' },
+                { key: 'hate_speech', label: 'Hate Speech', desc: 'Discriminatory or hateful content' },
+                { key: 'other', label: 'Other', desc: 'Another reason not listed above' },
+              ].map((reason) => (
+                <TouchableOpacity
+                  key={reason.key}
+                  style={{
+                    paddingVertical: 14, paddingHorizontal: 16,
+                    borderWidth: 1.5, borderRadius: 12, marginBottom: 10,
+                    borderColor: selectedReportReason === reason.key ? theme.primary : '#E2E8F0',
+                    backgroundColor: selectedReportReason === reason.key ? '#F5F0FF' : '#FFF',
+                  }}
+                  onPress={() => setSelectedReportReason(reason.key)}
+                >
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: selectedReportReason === reason.key ? theme.primary : theme.textMain }}>{reason.label}</Text>
+                  <Text style={{ fontSize: 13, color: theme.textMuted }}>{reason.desc}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: '#F1F5F9', borderRadius: 24, paddingVertical: 12, alignItems: 'center' }}
+                onPress={() => { setReportModalVisible(false); setSelectedReportReason(null); }}
+              >
+                <Text style={{ color: theme.textMuted, fontWeight: '600' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: selectedReportReason ? '#ef4444' : '#CBD5E1', borderRadius: 24, paddingVertical: 12, alignItems: 'center' }}
+                disabled={!selectedReportReason}
+                onPress={async () => {
+                  const matchedUserId = receiverInfo?.user_id;
+                  if (!matchedUserId || !selectedReportReason) return;
+                  try {
+                    await userService.reportUser(matchedUserId, selectedReportReason, 'Reported from chat');
+                    if (user?.id) {
+                      await activityLoggerService.logReport(user.id, matchedUserId, selectedReportReason, 'Reported from chat');
+                    }
+                    Alert.alert('Report Submitted', 'Thank you for helping keep The Well safe. Our team will review your report within 24 hours.');
+                    setReportModalVisible(false);
+                    setSelectedReportReason(null);
+                  } catch (error: any) {
+                    Alert.alert('Error', error.message || 'Failed to submit report.');
+                  }
+                }}
+              >
+                <Text style={{ color: '#FFF', fontWeight: '600' }}>Submit Report</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Message List */}
       <FlatList
