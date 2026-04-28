@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import {
   Calendar,
@@ -6,13 +6,14 @@ import {
   Users,
   Heart,
   Star,
-  ExternalLink,
+  Sparkles,
 } from 'lucide-react-native';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { adService, type EventAd } from '@/lib/services/ad.service';
+import { subscriptionService } from '@/lib/services/subscription.service';
 
 interface EventAdProps {
   ad: EventAd;
@@ -23,6 +24,7 @@ interface EventAdProps {
 export function EventAd({ ad, onImpression, onClick }: EventAdProps) {
   const [isAttending, setIsAttending] = useState(ad.isAttending || false);
   const [loading, setLoading] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     // Track impression when component mounts
@@ -47,6 +49,34 @@ export function EventAd({ ad, onImpression, onClick }: EventAdProps) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRemoveAds = async () => {
+    if (processing) return;
+    
+    setProcessing(true);
+    try {
+      // Create checkout session for ad-free subscription
+      const sessionResult = await subscriptionService.createCheckoutSession('adfree');
+      
+      if (!sessionResult.success) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const checkoutUrl = sessionResult.data.checkout_url;
+      const supported = await Linking.canOpenURL(checkoutUrl);
+      
+      if (supported) {
+        await Linking.openURL(checkoutUrl);
+      } else {
+        Alert.alert('Error', 'Could not open checkout page. Please try again.');
+      }
+    } catch (error) {
+      console.error('[EventAd] Error starting AdFree checkout:', error);
+      Alert.alert('Error', 'Could not start checkout. Please try again.');
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -159,6 +189,20 @@ export function EventAd({ ad, onImpression, onClick }: EventAdProps) {
               <Text className="text-slate-600 font-medium">Maybe</Text>
             </Button>
           </View>
+
+          {/* Remove Ads Option */}
+          <TouchableOpacity 
+            onPress={handleRemoveAds}
+            disabled={processing}
+            className="mt-3 pt-3 border-t border-slate-100"
+          >
+            <View className="flex-row items-center justify-center gap-2">
+              <Sparkles size={14} color="#8B5CF6" />
+              <Text className="text-sm text-purple-600 font-medium">
+                {processing ? 'Opening checkout...' : 'Remove ads - Go Ad-Free ($4.99/month)'}
+              </Text>
+            </View>
+          </TouchableOpacity>
         </CardContent>
       </Card>
     </TouchableOpacity>

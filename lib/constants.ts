@@ -121,6 +121,9 @@ export const API_ENDPOINTS = {
     INCREMENT_DAILY_LIKES: "/subscriptions/daily-likes/increment",
     CREATE_PAYMENT: "/subscriptions/create-payment",
     VERIFY_PAYMENT: (paymentId: string) => `/subscriptions/verify-payment/${paymentId}`,
+    // External checkout for Apple Guideline 3.1.1 compliance
+    CREATE_CHECKOUT_SESSION: "/subscriptions/checkout-session",
+    VERIFY_EXTERNAL_PAYMENT: "/subscriptions/verify-external",
   },
   // Moderation
   MODERATION: {

@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Check,
@@ -7,7 +7,7 @@ import {
   Heart,
   MessageCircle,
   Flame,
-  CreditCard,
+  ExternalLink,
 } from 'lucide-react-native';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,7 +17,7 @@ import {
   subscriptionService,
   type SubscriptionPlan,
 } from '@/lib/services/subscription.service';
-import { useSquarePayments } from '@/hooks/use-square-payments';
+import { useAuth } from '@/contexts/auth-context';
 
 interface SubscriptionPaywallProps {
   onClose: () => void;
@@ -25,18 +25,15 @@ interface SubscriptionPaywallProps {
   hasUsedTrial: boolean;
 }
 
-interface SquareCardDetails {
-  nonce: string;
-  card: {
-    brand: string;
-    lastFourDigits: string;
-    expirationMonth?: number;
-    expirationYear?: number;
-    postalCode?: string;
-    prepaidType?: string;
-    type?: string;
-  };
-  token?: string;
+// External checkout session token storage
+let pendingCheckoutToken: string | null = null;
+
+export function getPendingCheckoutToken() {
+  return pendingCheckoutToken;
+}
+
+export function clearPendingCheckoutToken() {
+  pendingCheckoutToken = null;
 }
 
 export function SubscriptionPaywall({
@@ -48,31 +45,27 @@ export function SubscriptionPaywall({
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
-  const { isInitialized, initializePayments, startCardEntry } =
-    useSquarePayments();
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
-    initializeSquarePayments();
     loadPlans();
   }, []);
-
-  const initializeSquarePayments = async () => {
-    try {
-      await initializePayments();
-    } catch (error) {
-      console.error(
-        '[Anointed Innovations] Square initialization error:',
-        error,
-      );
-    }
-  };
 
   const loadPlans = async () => {
     try {
       const allPlans = await subscriptionService.getPlans();
-      const availablePlans = hasUsedTrial
-        ? allPlans.filter((p) => p.id !== 'trial')
-        : allPlans;
+      // Filter: exclude trial if used, and exclude ad-only plans (AdFree is handled separately)
+      const availablePlans = allPlans.filter((p) => {
+        // Exclude trial if already used
+        if (hasUsedTrial && p.id === 'trial') return false;
+        // Exclude ad-only plans (those that only have ad_free feature without dating features)
+        const isAdOnlyPlan = p.features?.ad_free && 
+          !p.features?.ai_matches && 
+          !p.features?.unlimited_likes &&
+          !p.features?.chat;
+        if (isAdOnlyPlan) return false;
+        return true;
+      });
       setPlans(availablePlans);
       setLoading(false);
     } catch (error) {
@@ -81,7 +74,7 @@ export function SubscriptionPaywall({
     }
   };
 
-  // In subscription-paywall.tsx, update the handleSubscribe function:
+  // Handle subscription - external checkout for paid plans
   const handleSubscribe = async () => {
     if (!selectedPlan) return;
 
@@ -91,60 +84,53 @@ export function SubscriptionPaywall({
       if (selectedPlan === 'trial') {
         const result = await subscriptionService.activateTrial();
         Alert.alert('Success', result.message);
+        await refreshUser();
         onSubscribe(selectedPlan);
         onClose();
       } else {
-        const planData = plans.find((p) => p.id === selectedPlan);
-        if (!planData) {
-          throw new Error('Plan not found');
+        // Create external checkout session for Apple Guideline 3.1.1 compliance
+        const sessionResult = await subscriptionService.createCheckoutSession(selectedPlan);
+        
+        if (!sessionResult.success) {
+          throw new Error('Failed to create checkout session');
         }
 
-        // For paid subscriptions, start card entry to get a nonce for card-on-file
-        startCardEntry(
-          async (cardDetails: SquareCardDetails) => {
-            const postalCode = cardDetails.card?.postalCode;
+        // Store the token for verification when user returns
+        pendingCheckoutToken = sessionResult.data.session_token;
 
-            try {
-              console.log(
-                '[Anointed Innovations] Processing subscription with nonce:',
-                cardDetails.nonce?.substring(0, 20) + '...',
-                postalCode,
-              );
-
-              // Process payment through backend - this will create a customer and card on file
-              const result = await subscriptionService.processPayment(
-                selectedPlan,
-                cardDetails.nonce, // This is a card-on-file nonce
-                cardDetails.card?.postalCode,
-              );
-
-              if (result.success) {
-                Alert.alert('Success', 'Subscription activated successfully!');
-                onSubscribe(selectedPlan);
-                onClose();
-              } else {
-                Alert.alert(
-                  'Error',
-                  result.message || 'Subscription activation failed',
-                );
-              }
-            } catch (error: any) {
-              console.error(
-                '[Anointed Innovations] Subscription processing error:',
-                error,
-              );
-              Alert.alert(
-                'Error',
-                error.message || 'Failed to activate subscription',
-              );
-            } finally {
-              setProcessing(false);
-            }
-          },
-          () => {
-            console.log('[Anointed Innovations] Card entry cancelled');
-            setProcessing(false);
-          },
+        // Open external browser for checkout
+        const checkoutUrl = sessionResult.data.checkout_url;
+        
+        Alert.alert(
+          'Continue to Secure Checkout',
+          `You'll be redirected to our secure checkout page to complete your ${sessionResult.data.plan.name} subscription.`,
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => {
+                setProcessing(false);
+                pendingCheckoutToken = null;
+              },
+            },
+            {
+              text: 'Continue',
+              onPress: async () => {
+                try {
+                  // Open in external browser (opens Safari/Chrome)
+                  const supported = await Linking.canOpenURL(checkoutUrl);
+                  if (supported) {
+                    await Linking.openURL(checkoutUrl);
+                  }
+                  setProcessing(false);
+                } catch (error) {
+                  console.error('[Anointed Innovations] Failed to open browser:', error);
+                  Alert.alert('Error', 'Could not open checkout page. Please try again.');
+                  setProcessing(false);
+                }
+              },
+            },
+          ]
         );
       }
     } catch (error: any) {
@@ -294,7 +280,7 @@ export function SubscriptionPaywall({
             ) : (
               <View className="flex-row items-center gap-2">
                 {selectedPlan !== 'trial' && (
-                  <CreditCard size={20} color="white" />
+                  <ExternalLink size={20} color="white" />
                 )}
                 <Text className="text-white font-semibold text-base">
                   {selectedPlan === 'trial'

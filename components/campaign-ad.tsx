@@ -6,12 +6,14 @@ import {
   Globe,
   Star,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react-native';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { adService, type CampaignAd } from '@/lib/services/ad.service';
+import { subscriptionService } from '@/lib/services/subscription.service';
 
 interface CampaignAdProps {
   ad: CampaignAd;
@@ -21,6 +23,7 @@ interface CampaignAdProps {
 
 export function CampaignAd({ ad, onImpression, onClick }: CampaignAdProps) {
   const [loading, setLoading] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     // Track impression when component mounts
@@ -32,38 +35,77 @@ export function CampaignAd({ ad, onImpression, onClick }: CampaignAdProps) {
   };
 
   const handleWebsite = async () => {
-    if (ad.website) {
+    if (ad.website && !loading) {
+      setLoading(true);
       try {
         await Linking.openURL(ad.website);
         adService.trackClick(ad.id);
       } catch (error) {
         console.error('[CampaignAd] Error opening website:', error);
         Alert.alert('Error', 'Could not open website');
+      } finally {
+        setLoading(false);
       }
     }
   };
 
   const handlePhone = async () => {
-    if (ad.phone) {
+    if (ad.phone && !loading) {
+      setLoading(true);
       try {
         await Linking.openURL(`tel:${ad.phone}`);
         adService.trackClick(ad.id);
       } catch (error) {
         console.error('[CampaignAd] Error opening phone:', error);
         Alert.alert('Error', 'Could not make phone call');
+      } finally {
+        setLoading(false);
       }
     }
   };
 
-  const handleCTA = () => {
-    if (ad.ctaUrl) {
-      Linking.openURL(ad.ctaUrl).catch((error) => {
+  const handleCTA = async () => {
+    if (ad.ctaUrl && !loading) {
+      setLoading(true);
+      try {
+        await Linking.openURL(ad.ctaUrl);
+        adService.trackClick(ad.id);
+      } catch (error) {
         console.error('[CampaignAd] Error opening CTA URL:', error);
         Alert.alert('Error', 'Could not open link');
-      });
-      adService.trackClick(ad.id);
-    } else {
+      } finally {
+        setLoading(false);
+      }
+    } else if (!ad.ctaUrl) {
       handlePress();
+    }
+  };
+
+  const handleRemoveAds = async () => {
+    if (processing) return;
+    
+    setProcessing(true);
+    try {
+      // Create checkout session for ad-free subscription
+      const sessionResult = await subscriptionService.createCheckoutSession('adfree');
+      
+      if (!sessionResult.success) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const checkoutUrl = sessionResult.data.checkout_url;
+      const supported = await Linking.canOpenURL(checkoutUrl);
+      
+      if (supported) {
+        await Linking.openURL(checkoutUrl);
+      } else {
+        Alert.alert('Error', 'Could not open checkout page. Please try again.');
+      }
+    } catch (error) {
+      console.error('[CampaignAd] Error starting AdFree checkout:', error);
+      Alert.alert('Error', 'Could not start checkout. Please try again.');
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -149,6 +191,20 @@ export function CampaignAd({ ad, onImpression, onClick }: CampaignAdProps) {
               </View>
             </Button>
           )}
+
+          {/* Remove Ads Option */}
+          <TouchableOpacity 
+            onPress={handleRemoveAds}
+            disabled={processing}
+            className="mt-3 pt-3 border-t border-slate-100"
+          >
+            <View className="flex-row items-center justify-center gap-2">
+              <Sparkles size={14} color="#8B5CF6" />
+              <Text className="text-sm text-purple-600 font-medium">
+                {processing ? 'Opening checkout...' : 'Remove ads - Go Ad-Free ($4.99/month)'}
+              </Text>
+            </View>
+          </TouchableOpacity>
         </CardContent>
       </Card>
     </TouchableOpacity>

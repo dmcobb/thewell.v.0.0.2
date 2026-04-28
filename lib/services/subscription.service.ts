@@ -121,6 +121,40 @@ class SubscriptionService {
     return { verified: response.verified, subscription: response.subscription }
   }
 
+  // External checkout for Apple Guideline 3.1.1 compliance
+  async createCheckoutSession(planId: string): Promise<{
+    success: boolean
+    data: {
+      session_token: string
+      checkout_url: string
+      plan: {
+        id: string
+        name: string
+        amount: number
+        duration_months: number
+      }
+      expires_at: string
+    }
+  }> {
+    return apiClient.post(API_ENDPOINTS.SUBSCRIPTIONS.CREATE_CHECKOUT_SESSION, {
+      plan_id: planId,
+    })
+  }
+
+  async verifyExternalPayment(sessionToken: string): Promise<{
+    success: boolean
+    message: string
+    data?: {
+      subscription_id: string
+      plan_type: string
+      expires_at: string
+    }
+  }> {
+    return apiClient.post(API_ENDPOINTS.SUBSCRIPTIONS.VERIFY_EXTERNAL_PAYMENT, {
+      session_token: sessionToken,
+    })
+  }
+
   async cancelSubscription(): Promise<{ success: boolean; message: string }> {
     return apiClient.post(API_ENDPOINTS.PAYMENTS.CANCEL_SUBSCRIPTION, {})
   }
