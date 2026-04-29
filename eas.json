@@ -6,24 +6,11 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal",
-      "android": {
-        "gradleCommand": ":app:assembleDebug",
-        "buildType": "app-bundle"
-      },
-      "ios": {
-        "simulator": true
-      }
+      "distribution": "internal"
     },
     "preview": {
-      "android": {
-        "buildType": "app-bundle"
-      },
       "distribution": "internal",
-      "autoIncrement": true,
-      "ios": {
-        "simulator": true
-      }
+      "autoIncrement": true
     },
     "production": {
       "ios": {
