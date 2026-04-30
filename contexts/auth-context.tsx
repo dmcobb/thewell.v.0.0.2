@@ -1,7 +1,7 @@
 import type React from 'react';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../lib/services/auth.service';
-import { useRouter, useSegments } from 'expo-router';
+import { useRouter, useSegments, usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthContextType {
@@ -26,56 +26,85 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
   const router = useRouter();
   const segments = useSegments();
+  const pathname = usePathname();
 
   useEffect(() => {
     loadUser();
   }, []);
 
+  // Navigation guard effect - handles routing based on auth state
   useEffect(() => {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === 'auth';
-    const isDataMissing =
-      user &&
-      (!user.locationCity ||
-        !user.locationState ||
-        !user.gender ||
-        !user.dateOfBirth ||
-        !user.phone);
     const inOnboarding = segments[0] === 'onboarding';
     const inStartJourney = segments[0] === 'start-journey';
     const inTabs = segments[0] === '(tabs)';
-    const isVideoProfile = segments[0] === 'profile' && segments[1] === 'video';
-    const inBrowse = segments[0] === 'browse';
-    const inSettings = segments[0] === 'settings';
-    const inChat = segments[0] === 'chat';
-    const inAllowedScreens =
-      inTabs || isVideoProfile || inBrowse || inSettings || inChat;
+    const isSplashScreen = pathname === '/' || pathname === '';
 
-    if (!user && !inAuthGroup) {
-      // Not authenticated and not in auth screens - redirect to splash
-      router.replace('/');
-    } else if (user) {
-      // User is authenticated - check profile completion
-      if (
-        !user.profileComplete &&
-        !inOnboarding &&
-        !inStartJourney &&
-        isDataMissing
-      ) {
-        // Profile not complete - redirect to start journey
+    // Define allowed screens for authenticated users
+    const allowedScreens = [
+      '(tabs)',
+      'profile',
+      'browse',
+      'settings',
+      'chat',
+      'payment',
+    ];
+
+    const isInAllowedScreen = allowedScreens.some(
+      (screen) => segments[0] === screen || pathname.startsWith(`/${screen}`),
+    );
+
+    console.log('[AuthContext] Navigation check:', {
+      pathname,
+      segments: segments[0],
+      hasUser: !!user,
+      profileComplete: user?.profileComplete,
+      inAuthGroup,
+      inOnboarding,
+      inStartJourney,
+      inTabs,
+      isSplashScreen,
+    });
+
+    // NOT AUTHENTICATED: Redirect to splash screen
+    if (!user) {
+      if (!inAuthGroup && !isSplashScreen) {
+        console.log('[AuthContext] Not authenticated, redirecting to splash');
+        router.replace('/');
+      }
+      return;
+    }
+
+    // AUTHENTICATED: Check profile completion and route accordingly
+    const isProfileComplete = user.profileComplete === true;
+
+    if (!isProfileComplete) {
+      // Profile incomplete - must complete onboarding
+      if (!inOnboarding && !inStartJourney) {
+        console.log(
+          '[AuthContext] Profile incomplete, redirecting to onboarding',
+        );
         router.replace('/onboarding');
-      } else if (user.profileComplete && !inAllowedScreens) {
+      }
+    } else {
+      // Profile complete - ensure we're in allowed screens
+      if (!isInAllowedScreen && !inAuthGroup) {
+        console.log('[AuthContext] Profile complete, redirecting to main tabs');
         router.replace('/(tabs)');
       }
     }
-  }, [user, segments, isLoading]);
+  }, [user, segments, isLoading, pathname]);
 
   const loadUser = async () => {
     try {
+      setIsLoading(true);
+
       // Check for token immediately; only proceed if it exists
       const token = await AsyncStorage.getItem('authToken');
       if (!token) {
+        console.log('[AuthContext] No auth token found');
         setIsLoading(false);
         return;
       }
@@ -86,21 +115,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const response = await authService.getCurrentUser();
         if (response) {
           const currentUser = response.data || response;
+          console.log('[AuthContext] User loaded:', {
+            id: currentUser.id,
+            profileComplete: currentUser.profileComplete,
+            email: currentUser.email,
+          });
           setUser(currentUser);
 
           if (!currentUser.profileComplete) {
             await loadOnboardingProgress();
           }
         }
+      } else {
+        // Token exists but is invalid - clear it
+        await AsyncStorage.removeItem('authToken');
       }
     } catch (error: any) {
-      console.error('[Anointed Innovations] Error loading user:', error);
+      console.error('[AuthContext] Error loading user:', error);
       if (
         error.message?.includes('timeout') ||
         error.message?.includes('Network')
       ) {
         console.warn(
-          '[Anointed Innovations] Backend unreachable - user will need to login',
+          '[AuthContext] Backend unreachable - user will need to login',
         );
       }
     } finally {
@@ -118,38 +155,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setOnboardingProgress(null);
       }
     } catch (error: any) {
+      console.log('[AuthContext] No onboarding progress found');
       setOnboardingProgress(null);
     }
   };
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('[AuthContext] Login attempt for:', email);
       const response = await authService.login({ email, password });
 
       const syncedUser = await authService.syncUserFromBackend();
 
       if (syncedUser) {
         setUser(syncedUser);
-      } else {
+        console.log('[AuthContext] User synced:', {
+          profileComplete: syncedUser.profileComplete,
+        });
+      } else if (response.user) {
         // Fallback to login response if sync fails
         setUser(response.user);
+        console.log('[AuthContext] Using login response user');
       }
 
-      if (!syncedUser?.profileComplete && !response.user.profileComplete) {
+      if (!syncedUser?.profileComplete && !response.user?.profileComplete) {
         await loadOnboardingProgress();
       }
     } catch (error) {
-      console.error('[Anointed Innovations] Login error:', error);
+      console.error('[AuthContext] Login error:', error);
       throw error;
     }
   };
 
   const register = async (data: any) => {
     try {
+      console.log('[AuthContext] Register attempt for:', data.email);
       const response = await authService.register(data);
       setUser(response.user);
     } catch (error) {
-      console.error('[Anointed Innovations] Register error:', error);
+      console.error('[AuthContext] Register error:', error);
       throw error;
     }
   };
@@ -161,17 +205,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setOnboardingProgress(null);
       router.replace('/auth/login');
     } catch (error) {
-      console.error('[Anointed Innovations] Logout error:', error);
+      console.error('[AuthContext] Logout error:', error);
       throw error;
     }
   };
 
   const refreshUser = async () => {
     try {
+      console.log('[AuthContext] Refreshing user data');
       const response = await authService.getCurrentUser();
-      setUser(response.data || response);
+      if (!response) {
+        console.warn('[AuthContext] No user data returned from refresh');
+        return;
+      }
+      const refreshedUser = response.data || response;
+      setUser(refreshedUser);
+      console.log('[AuthContext] User refreshed:', {
+        profileComplete: refreshedUser?.profileComplete,
+      });
     } catch (error) {
-      console.error('[Anointed Innovations] Error refreshing user:', error);
+      console.error('[AuthContext] Error refreshing user:', error);
     }
   };
 

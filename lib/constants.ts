@@ -1,3 +1,4 @@
+// lib/constants.ts
 export const API_URL = "https://api.the-wellapp.com"
 export const API_VERSION = "v1"
 export const SOCKET_URL = "https://api.the-wellapp.com"
@@ -28,6 +29,9 @@ export const API_ENDPOINTS = {
     REPORT_USER: (userId: string) => `/users/${userId}/report`,
     BLOCK_USER: (userId: string) => `/users/${userId}/block`,
     UNBLOCK_USER: (userId: string) => `/users/${userId}/block`,
+    GET_BLOCKED_USERS: "/users/me/blocked",
+    ACCEPT_TERMS: "/users/me/accept-terms",
+    TERMS_STATUS: "/users/me/terms-status",
     SUBMIT_QUESTIONNAIRE: "/users/me/questionnaire",
     GET_QUESTIONNAIRE: "/users/me/questionnaire",
     PREFERENCES: "/users/me/preferences",
@@ -99,6 +103,7 @@ export const API_ENDPOINTS = {
     GET_PAYMENT_METHODS: "/payments/methods",
     HISTORY: "/payments/history",
     WEBHOOK: "/payments/webhook",
+    VERIFY_APPLE_RECEIPT: "/payments/verify-apple-receipt",
   },
   // Transactions
   TRANSACTIONS: {
