@@ -1,3 +1,4 @@
+// lib/services/user.service.ts
 import { apiClient } from "@/lib/api-client"
 import { API_ENDPOINTS } from "@/lib/constants"
 import AsyncStorage from "@react-native-async-storage/async-storage"
@@ -40,6 +41,9 @@ export interface UserProfile {
   last_active_at: string
   created_at: string
   profileComplete?: boolean
+  terms_accepted?: boolean
+  terms_accepted_at?: string
+  terms_version?: string
 }
 
 export interface UpdateProfileData {
@@ -101,6 +105,14 @@ export interface OnboardingProgress {
   preferences?: UserPreferences
   lastUpdated: string
 }
+
+export interface BlockedUser {
+  userId: string
+  blockedAt: string
+  reason?: string
+}
+
+const BLOCKED_USERS_KEY = '@thewell:blocked_users'
 
 class UserService {
   async getCurrentUser(): Promise<UserProfile> {
@@ -234,6 +246,7 @@ class UserService {
     const response = await apiClient.delete<{ success: boolean; message: string }>(API_ENDPOINTS.USERS.DELETE, { password, reason })
     return response || { success: false, message: "Account deletion failed" }
   }
+  
   async saveOnboardingProgress(progress: OnboardingProgress): Promise<{ success: boolean; message: string }> {
     try {
       const response = await apiClient.post<{ success: boolean; message: string }>(API_ENDPOINTS.USERS.SAVE_ONBOARDING_PROGRESS, progress)
@@ -296,6 +309,11 @@ class UserService {
     }
   }
 
+  // ==================== BLOCKING & REPORTING ====================
+
+  /**
+   * Report a user for inappropriate content or behavior
+   */
   async reportUser(userId: string, reason: string, description?: string): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post<{ success: boolean; message: string }>(
       API_ENDPOINTS.USERS.REPORT_USER(userId),
@@ -304,19 +322,180 @@ class UserService {
     return response
   }
 
+  /**
+   * Block a user - removes them from feed and prevents future matches
+   */
   async blockUser(userId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+    try {
+      // Call backend to block user
+      const response = await apiClient.post<{ success: boolean; message: string }>(
+        API_ENDPOINTS.USERS.BLOCK_USER(userId),
+        { reason }
+      )
+
+      if (response.success) {
+        // Add to local blocked list for immediate UI filtering
+        await this.addToBlockedList(userId, reason)
+      }
+
+      return response
+    } catch (error: any) {
+      console.error('[UserService] Block user error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unblock a user
+   */
+  async unblockUser(userId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await apiClient.delete<{ success: boolean; message: string }>(
+        API_ENDPOINTS.USERS.UNBLOCK_USER(userId)
+      )
+
+      if (response.success) {
+        // Remove from local blocked list
+        await this.removeFromBlockedList(userId)
+      }
+
+      return response
+    } catch (error: any) {
+      console.error('[UserService] Unblock user error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get list of blocked user IDs from local storage
+   */
+  async getBlockedUserIds(): Promise<string[]> {
+    try {
+      const blockedJson = await AsyncStorage.getItem(BLOCKED_USERS_KEY)
+      if (blockedJson) {
+        const blockedUsers: BlockedUser[] = JSON.parse(blockedJson)
+        return blockedUsers.map(u => u.userId)
+      }
+      return []
+    } catch (error) {
+      console.error('[UserService] Error getting blocked users:', error)
+      return []
+    }
+  }
+
+  /**
+   * Get full blocked user list with metadata
+   */
+  async getBlockedUsers(): Promise<BlockedUser[]> {
+    try {
+      const blockedJson = await AsyncStorage.getItem(BLOCKED_USERS_KEY)
+      if (blockedJson) {
+        return JSON.parse(blockedJson)
+      }
+      return []
+    } catch (error) {
+      console.error('[UserService] Error getting blocked users:', error)
+      return []
+    }
+  }
+
+  /**
+   * Add user to local blocked list
+   */
+  private async addToBlockedList(userId: string, reason?: string): Promise<void> {
+    try {
+      const currentList = await this.getBlockedUsers()
+      
+      // Check if already blocked
+      if (currentList.find(u => u.userId === userId)) {
+        return
+      }
+
+      const newBlock: BlockedUser = {
+        userId,
+        blockedAt: new Date().toISOString(),
+        reason
+      }
+
+      const updatedList = [...currentList, newBlock]
+      await AsyncStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(updatedList))
+    } catch (error) {
+      console.error('[UserService] Error adding to blocked list:', error)
+    }
+  }
+
+  /**
+   * Remove user from local blocked list
+   */
+  private async removeFromBlockedList(userId: string): Promise<void> {
+    try {
+      const currentList = await this.getBlockedUsers()
+      const updatedList = currentList.filter(u => u.userId !== userId)
+      await AsyncStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(updatedList))
+    } catch (error) {
+      console.error('[UserService] Error removing from blocked list:', error)
+    }
+  }
+
+  /**
+   * Sync blocked users from server
+   */
+  async syncBlockedUsers(): Promise<void> {
+    try {
+      const response = await apiClient.get<{ success: boolean; data: string[] }>(
+        API_ENDPOINTS.USERS.GET_BLOCKED_USERS
+      )
+      
+      if (response.success && response.data) {
+        const blockedUsers: BlockedUser[] = response.data.map(userId => ({
+          userId,
+          blockedAt: new Date().toISOString()
+        }))
+        await AsyncStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(blockedUsers))
+      }
+    } catch (error) {
+      console.error('[UserService] Error syncing blocked users:', error)
+    }
+  }
+
+  // ==================== TERMS & EULA ====================
+
+  /**
+   * Accept Terms of Service and Privacy Policy
+   */
+  async acceptTerms(version: string = '1.0'): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post<{ success: boolean; message: string }>(
-      API_ENDPOINTS.USERS.BLOCK_USER(userId),
-      { reason }
+      API_ENDPOINTS.USERS.ACCEPT_TERMS,
+      { version }
     )
+    
+    if (response.success) {
+      // Update local user data
+      const userStr = await AsyncStorage.getItem("user")
+      if (userStr) {
+        const currentUser = JSON.parse(userStr)
+        currentUser.terms_accepted = true
+        currentUser.terms_accepted_at = new Date().toISOString()
+        currentUser.terms_version = version
+        await AsyncStorage.setItem("user", JSON.stringify(currentUser))
+      }
+    }
+    
     return response
   }
 
-  async unblockUser(userId: string): Promise<{ success: boolean; message: string }> {
-    const response = await apiClient.delete<{ success: boolean; message: string }>(
-      API_ENDPOINTS.USERS.UNBLOCK_USER(userId)
-    )
-    return response
+  /**
+   * Check if user has accepted current terms
+   */
+  async hasAcceptedTerms(): Promise<{ accepted: boolean; version?: string }> {
+    try {
+      const response = await apiClient.get<{ success: boolean; data: { accepted: boolean; version: string } }>(
+        API_ENDPOINTS.USERS.TERMS_STATUS
+      )
+      return response.data || { accepted: false }
+    } catch (error) {
+      return { accepted: false }
+    }
   }
 }
 
