@@ -25,7 +25,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { VideoPlayer } from '@/components/video-player';
 import { useState, useEffect, useCallback } from 'react';
-import { matchService, type AIMatchResult } from '@/lib/services/match.service';
+import { matchService, type AIMatchResult, type Match } from '@/lib/services/match.service';
 import {
   subscriptionService,
   type SubscriptionStatus,
@@ -41,6 +41,7 @@ export default function AIMatchTab() {
   const [subscriptionStatus, setSubscriptionStatus] =
     useState<SubscriptionStatus | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [userMatches, setUserMatches] = useState<Match[]>([]);
 
   useEffect(() => {
     checkSubscriptionAndLoadMatch();
@@ -77,14 +78,24 @@ export default function AIMatchTab() {
   const loadAIMatch = async () => {
     try {
       if (!refreshing) setLoading(true);
-      const aiMatch = await matchService.getAIMatch();
+      const [aiMatch, matches] = await Promise.all([
+        matchService.getAIMatch(),
+        matchService.getMatches()
+      ]);
       setMatch(aiMatch);
+      setUserMatches(matches);
     } catch (error) {
       console.error('[Anointed Innovations] Error loading AI match:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  // Check if there's a mutual match with the current AI match user
+  const getExistingMatch = () => {
+    if (!match) return null;
+    return userMatches.find(m => m.user_id === match.id || m.matched_user_id === match.id);
   };
 
   const onRefresh = () => {
@@ -108,9 +119,14 @@ export default function AIMatchTab() {
 
   const handleMessage = async () => {
     if (!match) return;
+    const existingMatch = getExistingMatch();
+    if (!existingMatch) {
+      console.error('[Anointed Innovations] No mutual match found for messaging');
+      return;
+    }
     try {
-      // Navigate to chat with this match
-      router.push(`/chat/${match.id}`);
+      // Navigate to chat with the actual match_id
+      router.push(`/chat/${existingMatch.match_id}`);
     } catch (error) {
       console.error('[Anointed Innovations] Error navigating to chat:', error);
     }
@@ -330,29 +346,53 @@ export default function AIMatchTab() {
                   )}
 
                   <View className="flex-row gap-3 pt-2">
-                    <TouchableOpacity
-                      className="flex-1 h-14 bg-slate-100 rounded-2xl items-center justify-center"
-                      onPress={handlePass}
-                      activeOpacity={0.7}
-                    >
-                      <Text className="text-slate-500 font-bold text-base">Pass</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      className="flex-1 h-14 bg-cyan-600 rounded-2xl flex-row items-center justify-center shadow-md"
-                      onPress={handleMessage}
-                      activeOpacity={0.8}
-                    >
-                      <MessageCircle size={20} color="white" fill="white" className="mr-2" />
-                      <Text className="text-white font-bold text-base">Message</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      className="flex-1 h-14 bg-purple-600 rounded-2xl flex-row items-center justify-center shadow-md"
-                      onPress={handleLike}
-                      activeOpacity={0.8}
-                    >
-                      <Heart size={20} color="white" fill="white" className="mr-2" />
-                      <Text className="text-white font-bold text-base">Like</Text>
-                    </TouchableOpacity>
+                    {getExistingMatch() ? (
+                      // Mutual match exists - show Pass, Message, Like
+                      <>
+                        <TouchableOpacity
+                          className="flex-1 h-14 bg-slate-100 rounded-2xl items-center justify-center"
+                          onPress={handlePass}
+                          activeOpacity={0.7}
+                        >
+                          <Text className="text-slate-500 font-bold text-base">Pass</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          className="flex-1 h-14 bg-cyan-600 rounded-2xl flex-row items-center justify-center shadow-md"
+                          onPress={handleMessage}
+                          activeOpacity={0.8}
+                        >
+                          <MessageCircle size={20} color="white" fill="white" className="mr-2" />
+                          <Text className="text-white font-bold text-base">Message</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          className="flex-1 h-14 bg-purple-600 rounded-2xl flex-row items-center justify-center shadow-md"
+                          onPress={handleLike}
+                          activeOpacity={0.8}
+                        >
+                          <Heart size={20} color="white" fill="white" className="mr-2" />
+                          <Text className="text-white font-bold text-base">Like</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      // No mutual match yet - show only Pass and Like
+                      <>
+                        <TouchableOpacity
+                          className="flex-1 h-14 bg-slate-100 rounded-2xl items-center justify-center"
+                          onPress={handlePass}
+                          activeOpacity={0.7}
+                        >
+                          <Text className="text-slate-500 font-bold text-base">Pass</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          className="flex-[2] h-14 bg-purple-600 rounded-2xl flex-row items-center justify-center shadow-md"
+                          onPress={handleLike}
+                          activeOpacity={0.8}
+                        >
+                          <Heart size={20} color="white" fill="white" className="mr-2" />
+                          <Text className="text-white font-bold text-base">Send Like</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
                   </View>
 
                   {subscriptionStatus && !subscriptionStatus.is_premium && (

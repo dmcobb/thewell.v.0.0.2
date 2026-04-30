@@ -203,7 +203,7 @@ export default function ChatScreen() {
               {receiverInfo?.first_name}
             </Text>
             <Text style={{ fontSize: 12, color: isTyping ? theme.primary : theme.textMuted }}>
-              {isTyping ? 'is typing...' : 'Active now'}
+              {isTyping ? 'is typing...' : 'Idle'}
             </Text>
           </View>
         </View>
