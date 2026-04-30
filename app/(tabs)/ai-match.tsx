@@ -106,6 +106,16 @@ export default function AIMatchTab() {
     }
   };
 
+  const handleMessage = async () => {
+    if (!match) return;
+    try {
+      // Navigate to chat with this match
+      router.push(`/chat/${match.id}`);
+    } catch (error) {
+      console.error('[Anointed Innovations] Error navigating to chat:', error);
+    }
+  };
+
   const handlePass = async () => {
     if (!match) return;
     try {
@@ -178,10 +188,10 @@ export default function AIMatchTab() {
         visible={showPaywall}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setShowPaywall(false)}
+        onRequestClose={() => router.replace('/(tabs)')}
       >
         <SubscriptionPaywall
-          onClose={() => setShowPaywall(false)}
+          onClose={() => router.replace('/(tabs)')}
           onSubscribe={handleSubscribe}
           hasUsedTrial={subscriptionStatus?.has_used_trial || false}
         />
@@ -207,13 +217,14 @@ export default function AIMatchTab() {
         }
       >
         <View className="gap-6">
-          <LinearGradient
-            colors={['#0891B2', '#0284C7', '#0369A1']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            className="rounded-[28px] overflow-hidden shadow-lg"
-          >
-            <View className="p-6">
+          <View className="rounded-[28px] overflow-hidden shadow-lg">
+            <LinearGradient
+              colors={['#0891B2', '#0284C7', '#0369A1']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ flex: 1 }}
+            >
+              <View className="p-6">
               <View className="flex-row items-center justify-between mb-1">
                 <View className="flex-row items-center gap-2">
                   <Brain size={22} color="white" />
@@ -228,6 +239,7 @@ export default function AIMatchTab() {
               </Text>
             </View>
           </LinearGradient>
+        </View>
 
           {loading && !refreshing ? (
             <View className="py-20 items-center">
@@ -321,12 +333,20 @@ export default function AIMatchTab() {
                       <Text className="text-slate-500 font-bold text-base">Pass</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      className="flex-[2] h-14 bg-purple-600 rounded-2xl flex-row items-center justify-center shadow-md"
+                      className="flex-1 h-14 bg-cyan-600 rounded-2xl flex-row items-center justify-center shadow-md"
+                      onPress={handleMessage}
+                      activeOpacity={0.8}
+                    >
+                      <MessageCircle size={20} color="white" fill="white" className="mr-2" />
+                      <Text className="text-white font-bold text-base">Message</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex-1 h-14 bg-purple-600 rounded-2xl flex-row items-center justify-center shadow-md"
                       onPress={handleLike}
                       activeOpacity={0.8}
                     >
                       <Heart size={20} color="white" fill="white" className="mr-2" />
-                      <Text className="text-white font-bold text-base">Send Like</Text>
+                      <Text className="text-white font-bold text-base">Like</Text>
                     </TouchableOpacity>
                   </View>
 

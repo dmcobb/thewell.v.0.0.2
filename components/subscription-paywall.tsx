@@ -349,14 +349,15 @@ export function SubscriptionPaywall({
 
   return (
     <View className="flex-1 bg-white">
-      <LinearGradient
-        colors={['#0891C2', '#0284C7', '#8B5CF6']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        className="px-6 pt-12 pb-8"
-      >
+      <View style={{ paddingHorizontal: 24, paddingTop: 48, paddingBottom: 32 }}>
+        <LinearGradient
+          colors={['#0891C2', '#0284C7', '#8B5CF6']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        />
         <View className="flex-row justify-between items-start mb-4">
-          <View className="flex-1">
+          <View className="flex-1 p-4">
             <Text className="text-3xl font-bold text-white mb-2">
               Unlock Premium
             </Text>
@@ -368,7 +369,7 @@ export function SubscriptionPaywall({
             <X size={24} color="white" />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView className="flex-1 -mt-4">
         <View className="px-6 py-4">
