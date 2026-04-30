@@ -243,8 +243,9 @@ export default function StartJourneyScreen() {
   };
 
   return (
-    <LinearGradient colors={['#E0F2FE', '#F0F9FF']} className="flex-1">
-      <ScrollView
+    <View className="flex-1">
+      <LinearGradient colors={['#E0F2FE', '#F0F9FF']} style={{ flex: 1 }}>
+        <ScrollView
         ref={scrollRef}
         scrollEventThrottle={16}
         onContentSizeChange={(w, h) => setContentHeight(h)}
@@ -702,7 +703,8 @@ export default function StartJourneyScreen() {
             </View>
           </View>
         )}
-      </ScrollView>
-    </LinearGradient>
+        </ScrollView>
+      </LinearGradient>
+    </View>
   );
 }

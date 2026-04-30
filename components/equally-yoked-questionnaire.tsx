@@ -447,13 +447,14 @@ export function EquallyYokedQuestionnaire({
       contentContainerClassName="gap-6 p-4"
     >
       {/* Header with Progress */}
-      <LinearGradient
-        colors={['#0891B2', '#0284C7', '#8B5CF6', '#0369A1']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        className="rounded-xl overflow-hidden shadow-xl"
-      >
-        <View className="p-4">
+      <View className="rounded-xl overflow-hidden shadow-xl">
+        <LinearGradient
+          colors={['#0891B2', '#0284C7', '#8B5CF6', '#0369A1']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{ flex: 1 }}
+        >
+          <View className="p-4">
           <View className="flex-row items-center gap-2 mb-2">
             <Scale size={24} color="white" />
             <Text className="text-xl font-bold text-white">
@@ -476,6 +477,7 @@ export function EquallyYokedQuestionnaire({
           </View>
         </View>
       </LinearGradient>
+    </View>
 
       {/* Section Navigation */}
       <ScrollView

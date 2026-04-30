@@ -122,7 +122,15 @@ class ApiClient {
       if (response.status === 401 && requiresAuth && !_isRetry) {
         const newToken = await this.refreshAuthToken()
         if (newToken) return this.request<T>(endpoint, { ...options, _isRetry: true })
-        throw new Error("Session expired. Please login again.")
+        // Clear token and trigger silent redirect - don't throw error to avoid alert on login screen
+        await AsyncStorage.removeItem("authToken")
+        await AsyncStorage.removeItem("refreshToken")
+        // Emit session expired event for auth context to handle redirect
+        if (typeof window !== 'undefined' && (window as any).__authEventEmitter) {
+          (window as any).__authEventEmitter.emit('sessionExpired')
+        }
+        // Return empty response to prevent error alerts - auth context will redirect
+        return null as T
       }
 
       const contentType = response.headers.get("content-type")

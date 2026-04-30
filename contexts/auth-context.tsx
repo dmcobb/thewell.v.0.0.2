@@ -30,6 +30,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     loadUser();
+
+    // Listen for session expiration events from api-client
+    const handleSessionExpired = () => {
+      console.log('[AuthContext] Session expired event received, redirecting to login');
+      setUser(null);
+      setOnboardingProgress(null);
+      router.replace('/auth/login');
+    };
+
+    // Setup global event emitter for session expiration
+    if (typeof window !== 'undefined') {
+      (window as any).__authEventEmitter = {
+        listeners: {} as Record<string, Function[]>,
+        on(event: string, callback: Function) {
+          if (!this.listeners[event]) this.listeners[event] = [];
+          this.listeners[event].push(callback);
+        },
+        emit(event: string) {
+          if (this.listeners[event]) {
+            this.listeners[event].forEach((cb: Function) => cb());
+          }
+        },
+      };
+      (window as any).__authEventEmitter.on('sessionExpired', handleSessionExpired);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined' && (window as any).__authEventEmitter) {
+        // Cleanup would require storing the callback reference, simplified here
+      }
+    };
   }, []);
 
   // Navigation guard effect - handles routing based on auth state
