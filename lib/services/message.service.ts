@@ -26,10 +26,14 @@ export interface Conversation {
 
 class MessageService {
   async getOrCreateConversation(matchId: string): Promise<Conversation> {
-    const response = await apiClient.post<{ success: boolean; data: Conversation }>(
+    const response = await apiClient.post<{ success: boolean; data: Conversation; message?: string; error?: string }>(
       API_ENDPOINTS.MESSAGES.GET_CONVERSATIONS.replace('/conversations', `/conversations/${matchId}`),
       {},
     )
+    // Handle error responses from backend
+    if (!response.success) {
+      throw new Error(response.message || response.error || 'Failed to create conversation')
+    }
     return response.data
   }
 

@@ -101,6 +101,13 @@ export default function ChatScreen() {
         setMessages(existingMessages);
         socketService.joinConversation(conversation.id);
       }
+    } catch (error: any) {
+      console.error('[ChatScreen] Error loading chat:', error);
+      Alert.alert(
+        'Error',
+        error?.message || 'Failed to load conversation.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
     } finally {
       if (isMounted.current) setLoading(false);
     }
@@ -113,6 +120,12 @@ export default function ChatScreen() {
     setSending(true);
     try {
       await messageService.sendMessage(conversationId, textToSend, 'text');
+    } catch (error: any) {
+      console.error('[ChatScreen] Error sending message:', error);
+      Alert.alert(
+        'Failed to Send',
+        error?.message || 'Could not send message. Please try again.'
+      );
     } finally {
       if (isMounted.current) setSending(false);
     }
