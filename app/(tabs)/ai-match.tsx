@@ -183,15 +183,20 @@ export default function AIMatchTab() {
   };
 
   if (showPaywall) {
+    const handleClosePaywall = () => {
+      setShowPaywall(false);
+      router.replace('/(tabs)');
+    };
+
     return (
       <Modal
         visible={showPaywall}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => router.replace('/(tabs)')}
+        onRequestClose={handleClosePaywall}
       >
         <SubscriptionPaywall
-          onClose={() => router.replace('/(tabs)')}
+          onClose={handleClosePaywall}
           onSubscribe={handleSubscribe}
           hasUsedTrial={subscriptionStatus?.has_used_trial || false}
         />

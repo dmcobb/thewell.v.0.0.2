@@ -96,15 +96,23 @@ export function SubscriptionPaywall({
   const loadPlans = async () => {
     try {
       const allPlans = await subscriptionService.getPlans();
-      // Filter: exclude trial if used, and exclude ad-only plans
+      // Filter: exclude trial if used, and exclude ad-only/adfree plans
       const availablePlans = allPlans.filter((p) => {
         if (hasUsedTrial && p.id === 'trial') return false;
+        // Exclude ad-only plans (plans that only offer ad-free without premium features)
         const isAdOnlyPlan =
           p.features?.ad_free &&
           !p.features?.ai_matches &&
           !p.features?.unlimited_likes &&
           !p.features?.chat;
-        if (isAdOnlyPlan) return false;
+        // Exclude by plan ID or name containing ad/adfree variations
+        const isAdFreePlan =
+          p.id?.toLowerCase().includes('adfree') ||
+          p.id?.toLowerCase().includes('ad_free') ||
+          p.name?.toLowerCase().includes('adfree') ||
+          p.name?.toLowerCase().includes('ad-free') ||
+          p.name?.toLowerCase().includes('ad free');
+        if (isAdOnlyPlan || isAdFreePlan) return false;
         return true;
       });
       setPlans(availablePlans);
