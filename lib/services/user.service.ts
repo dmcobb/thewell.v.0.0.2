@@ -447,9 +447,13 @@ class UserService {
       )
       
       if (response.success && response.data) {
+        const existingUsers = await this.getBlockedUsers()
+        const existingMap = new Map(existingUsers.map(u => [u.userId, u]))
+        
         const blockedUsers: BlockedUser[] = response.data.map(userId => ({
           userId,
-          blockedAt: new Date().toISOString()
+          blockedAt: existingMap.get(userId)?.blockedAt || new Date().toISOString(),
+          reason: existingMap.get(userId)?.reason
         }))
         await AsyncStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(blockedUsers))
       }
@@ -457,7 +461,6 @@ class UserService {
       console.error('[UserService] Error syncing blocked users:', error)
     }
   }
-
   // ==================== TERMS & EULA ====================
 
   /**

@@ -1,19 +1,44 @@
-// lib/services/iap.service.ts
+// lib/services/iap.service.ts - RevenueCat Version (Expo SDK 54 Compatible)
+// Uses react-native-purchases instead of deprecated expo-in-app-purchases
+
 import { Platform } from 'react-native';
+import Purchases, { 
+  PurchasesPackage, 
+  CustomerInfo,
+  PURCHASES_ERROR_CODE
+} from 'react-native-purchases';
 import { apiClient } from '../api-client';
 import { API_ENDPOINTS } from '../constants';
 
-// Constants for IAP
-const IAP_PRODUCT_IDS = {
+// ============================================================================
+// Constants & Configuration
+// ============================================================================
+
+const REVENUECAT_API_KEYS = {
+  ios: process.env.REVENUECAT_IOS_API_KEY || '',
+  android: process.env.REVENUECAT_ANDROID_API_KEY || '',
+};
+
+export const IAP_PRODUCT_IDS = {
   MONTHLY: 'com.thewell.premium.monthly',
   QUARTERLY: 'com.thewell.premium.quarterly',
   SEMI_ANNUAL: 'com.thewell.premium.semiannual',
 } as const;
 
+const PLAN_TO_PRODUCT_MAP: Record<string, IAPProductId> = {
+  monthly: IAP_PRODUCT_IDS.MONTHLY,
+  quarterly: IAP_PRODUCT_IDS.QUARTERLY,
+  semi_annual: IAP_PRODUCT_IDS.SEMI_ANNUAL,
+} as const;
+
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
 export type IAPProductId = typeof IAP_PRODUCT_IDS[keyof typeof IAP_PRODUCT_IDS];
 
 export interface IAPProduct {
-  productId: string;
+  productId: IAPProductId;
   title: string;
   description: string;
   price: string;
@@ -26,94 +51,194 @@ export interface IAPPurchaseResult {
   success: boolean;
   message: string;
   transactionId?: string;
-  expiresAt?: string;
+  expiresAt?: string | null;
+  productId?: IAPProductId;
 }
 
-/**
- * In-App Purchase Service for Apple App Store compliance
- * 
- * This service implements StoreKit IAP for iOS to comply with 
- * Apple Guideline 3.1.1 - In-App Purchase requirements.
- * 
- * For iOS, we MUST use StoreKit for digital goods/subscriptions.
- * External payment methods (Square) should only be used for 
- * physical goods or on web/Android platforms.
- */
+export interface IAPValidationResult {
+  success: boolean;
+  message: string;
+  expiresAt?: string | null;
+}
+
+// ============================================================================
+// Custom Error Classes
+// ============================================================================
+
+class IAPServiceError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string,
+    public readonly isRetryable: boolean = false,
+    public readonly originalError?: unknown
+  ) {
+    super(message);
+    this.name = 'IAPServiceError';
+  }
+}
+
+// ============================================================================
+// Main IAP Service Class
+// ============================================================================
+
 class IAPService {
   private isAvailable: boolean = false;
-  private products: Map<string, IAPProduct> = new Map();
+  private isInitialized: boolean = false;
+  private products: Map<IAPProductId, IAPProduct> = new Map();
+  private customerInfo: CustomerInfo | null = null;
+
+  // ============================================================================
+  // Initialization & Lifecycle
+  // ============================================================================
 
   /**
-   * Initialize IAP and check availability
+   * Initialize RevenueCat SDK
+   * Must be called before any other IAP operations
    */
   async initialize(): Promise<boolean> {
-    // IAP only available on iOS physical devices
-    if (Platform.OS !== 'ios') {
-      console.log('[IAPService] IAP only available on iOS');
-      return false;
+    if (this.isInitialized) {
+      return this.isAvailable;
     }
 
-    // Check if we're on a simulator
-    if (__DEV__ && !(global as any).nativeModuleExists?.('EXInAppPurchases')) {
-      console.log('[IAPService] IAP not available on simulator');
+    try {
+      // IAP only available on iOS/Android physical devices
+      if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
+        console.log('[IAPService] IAP only available on mobile devices');
+        this.isInitialized = true;
+        return false;
+      }
+
+      // Check if we're on a simulator
+      if (__DEV__) {
+        const isSimulator = Platform.OS === 'ios' 
+          ? !(global as any).nativeModuleExists?.('RNPurchases')
+          : false; // Android emulator supports IAP
+        
+        if (isSimulator) {
+          console.log('[IAPService] IAP not available on iOS simulator');
+          this.isInitialized = true;
+          return false;
+        }
+      }
+
+      // Configure RevenueCat
+      const apiKey = Platform.OS === 'ios' 
+        ? REVENUECAT_API_KEYS.ios 
+        : REVENUECAT_API_KEYS.android;
+
+      if (!apiKey) {
+        console.error('[IAPService] RevenueCat API key not configured');
+        this.isInitialized = true;
+        this.isAvailable = false;
+        return false;
+      }
+
+      await Purchases.configure({
+        apiKey,
+        appUserID: undefined, // RevenueCat will generate anonymous ID
+      });
+
+      // Set up listener for purchase updates
+      Purchases.addCustomerInfoUpdateListener((info) => {
+        this.customerInfo = info;
+        this.handleCustomerInfoUpdate(info);
+      });
+
+      this.isAvailable = true;
+      this.isInitialized = true;
+      
+      console.log('[IAPService] RevenueCat initialized successfully');
+      return true;
+    } catch (error) {
+      console.error('[IAPService] Initialization failed:', error);
+      this.isInitialized = true;
+      this.isAvailable = false;
       return false;
     }
-
-    this.isAvailable = true;
-    return true;
   }
 
   /**
-   * Check if IAP is available on this device
+   * Check if IAP is available
    */
   isIAPAvailable(): boolean {
-    return this.isAvailable && Platform.OS === 'ios';
+    return this.isInitialized && this.isAvailable && 
+           (Platform.OS === 'ios' || Platform.OS === 'android');
   }
 
   /**
-   * Get IAP products from App Store
-   * Note: This requires expo-in-app-purchases to be installed
+   * Get current customer info (entitlements, subscriptions)
+   */
+  async getCustomerInfo(): Promise<CustomerInfo | null> {
+    if (!this.isIAPAvailable()) {
+      return null;
+    }
+
+    try {
+      const info = await Purchases.getCustomerInfo();
+      this.customerInfo = info;
+      return info;
+    } catch (error) {
+      console.error('[IAPService] Failed to get customer info:', error);
+      return null;
+    }
+  }
+
+  // ============================================================================
+  // Product Management
+  // ============================================================================
+
+  /**
+   * Get IAP products from App Store/Play Store
+   * RevenueCat handles the product fetching automatically
    */
   async getProducts(): Promise<IAPProduct[]> {
+    this.ensureInitialized();
+    
     if (!this.isIAPAvailable()) {
       return [];
     }
 
     try {
-      // Dynamically import to avoid errors on non-iOS platforms
-      const { getProductsAsync } = await import('expo-in-app-purchases');
+      // RevenueCat returns offerings - we need to get the packages
+      const offerings = await Purchases.getOfferings();
       
-      const productIds = Object.values(IAP_PRODUCT_IDS);
-      const result = await getProductsAsync(productIds);
-      
-      if (result.results) {
-        const products: IAPProduct[] = result.results.map((product: any) => ({
-          productId: product.productId,
-          title: product.title,
-          description: product.description,
-          price: product.price,
-          priceAmountMicros: product.priceAmountMicros || 0,
-          currencyCode: product.currencyCode || 'USD',
-          subscriptionPeriod: product.subscriptionPeriod,
-        }));
-
-        // Cache products
-        products.forEach(p => this.products.set(p.productId, p));
-        
-        return products;
+      if (!offerings.current) {
+        console.log('[IAPService] No current offerings available');
+        return [];
       }
+
+      const packages = offerings.current.availablePackages;
       
-      return [];
+      const products: IAPProduct[] = packages.map((pkg: PurchasesPackage) => ({
+        productId: pkg.identifier as IAPProductId,
+        title: pkg.product.title,
+        description: pkg.product.description,
+        price: pkg.product.priceString,
+        priceAmountMicros: Math.round(pkg.product.price * 1000000),
+        currencyCode: pkg.product.currencyCode,
+        subscriptionPeriod: pkg.packageType,
+      }));
+
+      // Cache products
+      products.forEach(p => this.products.set(p.productId, p));
+      return products;
     } catch (error) {
       console.error('[IAPService] Error getting products:', error);
       return [];
     }
   }
 
+  // ============================================================================
+  // Purchase Operations
+  // ============================================================================
+
   /**
    * Request a purchase
+   * RevenueCat handles the purchase flow
    */
-  async purchaseAsync(productId: string): Promise<IAPPurchaseResult> {
+  async purchaseAsync(productId: IAPProductId): Promise<IAPPurchaseResult> {
+    this.ensureInitialized();
+
     if (!this.isIAPAvailable()) {
       return {
         success: false,
@@ -121,44 +246,87 @@ class IAPService {
       };
     }
 
-    try {
-      const { purchaseItemAsync, setPurchaseListener } = await import('expo-in-app-purchases');
-      
-      return new Promise((resolve) => {
-        // Set up purchase listener
-        setPurchaseListener(({ responseCode, results, errorCode }) => {
-          if (responseCode === 0 && results && results.length > 0) {
-            // Purchase successful
-            const purchase = results[0];
-            
-            // Validate receipt with backend
-            this.validateReceipt(purchase.orderId, purchase.productId)
-              .then((validation) => {
-                resolve({
-                  success: validation.success,
-                  message: validation.message,
-                  transactionId: purchase.orderId,
-                  expiresAt: validation.expiresAt,
-                });
-              })
-              .catch((err) => {
-                resolve({
-                  success: false,
-                  message: 'Receipt validation failed: ' + err.message,
-                });
-              });
-          } else {
-            resolve({
-              success: false,
-              message: this.getErrorMessage(errorCode || responseCode),
-            });
-          }
-        });
+    // Validate product ID
+    if (!Object.values(IAP_PRODUCT_IDS).includes(productId)) {
+      return {
+        success: false,
+        message: 'Invalid product ID',
+      };
+    }
 
-        // Initiate purchase
-        purchaseItemAsync(productId);
-      });
+    try {
+      // Get the package for this product
+      const offerings = await Purchases.getOfferings();
+      
+      if (!offerings.current) {
+        return {
+          success: false,
+          message: 'No offerings available',
+        };
+      }
+
+      const packageToPurchase = offerings.current.availablePackages.find(
+        (pkg: PurchasesPackage) => pkg.identifier === productId
+      );
+
+      if (!packageToPurchase) {
+        return {
+          success: false,
+          message: 'Product not found in current offerings',
+        };
+      }
+
+      // Make the purchase
+      const { customerInfo, productIdentifier } = await Purchases.purchasePackage(packageToPurchase);
+
+      // Check if purchase was successful
+      if (!customerInfo.entitlements.active['premium']) {
+        return {
+          success: false,
+          message: 'Purchase completed but entitlement not granted',
+        };
+      }
+
+      // Sync with backend (optional - RevenueCat handles most of this)
+      const validation = await this.syncPurchaseWithBackend(
+        productIdentifier,
+        customerInfo
+      );
+
+      // Get expiration date from RevenueCat
+      const latestExpiration = this.getLatestExpirationDate(customerInfo);
+
+      return {
+        success: true,
+        message: 'Purchase successful',
+        transactionId: productIdentifier,
+        expiresAt: latestExpiration,
+        productId: productIdentifier as IAPProductId,
+      };
+
     } catch (error: any) {
+      // Handle specific RevenueCat errors
+      if (error.userCancelled) {
+        return {
+          success: false,
+          message: 'Purchase cancelled',
+        };
+      }
+
+      if (error.code === PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR) {
+        return {
+          success: false,
+          message: 'You already own this subscription',
+        };
+      }
+
+      if (error.code === PURCHASES_ERROR_CODE.PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR) {
+        return {
+          success: false,
+          message: 'This product is not available',
+        };
+      }
+
       console.error('[IAPService] Purchase error:', error);
       return {
         success: false,
@@ -167,119 +335,208 @@ class IAPService {
     }
   }
 
-  /**
-   * Validate receipt with backend
-   */
-  private async validateReceipt(
-    transactionId: string, 
-    productId: string
-  ): Promise<{ success: boolean; message: string; expiresAt?: string }> {
-    try {
-      const response = await apiClient.post<{
-        success: boolean;
-        message: string;
-        expires_at?: string;
-      }>(API_ENDPOINTS.PAYMENTS.VERIFY_APPLE_RECEIPT, {
-        transaction_id: transactionId,
-        product_id: productId,
-        platform: 'ios',
-      });
-
-      return {
-        success: response.success,
-        message: response.message,
-        expiresAt: response.expires_at,
-      };
-    } catch (error: any) {
-      console.error('[IAPService] Receipt validation error:', error);
-      return {
-        success: false,
-        message: 'Failed to validate purchase with server',
-      };
-    }
-  }
+  // ============================================================================
+  // Restore Purchases
+  // ============================================================================
 
   /**
    * Restore previous purchases
+   * RevenueCat handles this automatically
    */
-   async restorePurchases(): Promise<IAPPurchaseResult[]> {
+  async restorePurchases(): Promise<IAPPurchaseResult[]> {
+    this.ensureInitialized();
+
     if (!this.isIAPAvailable()) {
       return [];
     }
 
     try {
-      const { getPurchaseHistoryAsync, setPurchaseListener } = await import('expo-in-app-purchases');
+      const customerInfo = await Purchases.restorePurchases();
       
-      return new Promise((resolve) => {
-        setPurchaseListener(({ responseCode, results, errorCode }) => {
-          if (responseCode === 0 && results) {
-            // Validate each restored purchase
-            const validations = results.map(async (purchase: any) => {
-              const validation = await this.validateReceipt(
-                purchase.transactionId, 
-                purchase.productId
-              );
-              return {
-                success: validation.success,
-                message: validation.message,
-                transactionId: purchase.transactionId,
-                expiresAt: validation.expiresAt,
-              };
-            });
-            
-            Promise.all(validations).then(resolve);
-          } else {
-            resolve([]);
-          }
+      // Get all active entitlements
+      const results: IAPPurchaseResult[] = [];
+      
+      for (const [entitlementId, entitlement] of Object.entries(customerInfo.entitlements.active)) {
+        results.push({
+          success: true,
+          message: 'Purchase restored',
+          transactionId: entitlement.identifier,
+          expiresAt: entitlement.expirationDate,
+          productId: entitlement.productIdentifier as IAPProductId,
         });
+      }
 
-        getPurchaseHistoryAsync();
-      });
-    } catch (error) {
+      // Sync with backend
+      if (results.length > 0) {
+        await this.syncPurchaseWithBackend(
+          results[0].transactionId || '',
+          customerInfo
+        );
+      }
+
+      return results;
+    } catch (error: any) {
       console.error('[IAPService] Restore error:', error);
       return [];
     }
   }
 
+  // ============================================================================
+  // Backend Sync
+  // ============================================================================
+
   /**
-   * Get error message from error code
+   * Sync purchase with backend for record keeping
+   * RevenueCat handles the actual validation, this is just for your records
    */
-  private getErrorMessage(errorCode: number): string {
-    const errorMessages: Record<number, string> = {
-      1: 'User cancelled the purchase',
-      2: 'Product not available',
-      3: 'Purchase not allowed on this device',
-      4: 'Network error - please try again',
-      5: 'Payment not valid',
-      6: 'Server error - please try again',
-      7: 'User is not authorized',
-      8: 'Unknown error occurred',
-    };
-    
-    return errorMessages[errorCode] || 'Purchase failed. Please try again.';
+  private async syncPurchaseWithBackend(
+    productId: string,
+    customerInfo: CustomerInfo
+  ): Promise<IAPValidationResult> {
+    try {
+      // Get the latest transaction info
+      const latestExpiration = this.getLatestExpirationDate(customerInfo);
+      
+      await apiClient.post(API_ENDPOINTS.PAYMENTS.VERIFY_APPLE_RECEIPT, {
+        product_id: productId,
+        platform: Platform.OS,
+        revenuecat_customer_info: {
+          originalAppUserId: customerInfo.originalAppUserId,
+          firstSeen: customerInfo.firstSeen,
+          latestExpirationDate: latestExpiration,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Purchase synced with backend',
+        expiresAt: latestExpiration,
+      };
+    } catch (error: any) {
+      console.error('[IAPService] Backend sync error:', error);
+      return {
+        success: false,
+        message: 'Failed to sync with backend',
+      };
+    }
+  }
+
+  // ============================================================================
+  // Helper Methods
+  // ============================================================================
+
+  /**
+   * Get the latest expiration date from customer info
+   */
+  private getLatestExpirationDate(customerInfo: CustomerInfo): string | null {
+    let latestDate: Date | null = null;
+
+    for (const entitlement of Object.values(customerInfo.entitlements.active)) {
+      if (entitlement.expirationDate) {
+        const expDate = new Date(entitlement.expirationDate);
+        if (!latestDate || expDate > latestDate) {
+          latestDate = expDate;
+        }
+      }
+    }
+
+    return latestDate?.toISOString() || null;
+  }
+
+  /**
+   * Handle customer info updates (renewals, expirations, etc.)
+   */
+  private handleCustomerInfoUpdate(customerInfo: CustomerInfo): void {
+    console.log('[IAPService] Customer info updated:', {
+      originalAppUserId: customerInfo.originalAppUserId,
+      entitlements: Object.keys(customerInfo.entitlements.active),
+    });
+
+    // You can emit an event here or update app state
+    // Example: EventEmitter.emit('iap:customerInfoUpdated', customerInfo);
+  }
+
+  /**
+   * Check if user has active subscription
+   */
+  async hasActiveSubscription(): Promise<boolean> {
+    if (!this.isIAPAvailable()) {
+      return false;
+    }
+
+    try {
+      const customerInfo = await Purchases.getCustomerInfo();
+      return Object.keys(customerInfo.entitlements.active).length > 0;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Get current subscription expiration date
+   */
+  async getSubscriptionExpiration(): Promise<string | null> {
+    if (!this.isIAPAvailable()) {
+      return null;
+    }
+
+    try {
+      const customerInfo = await Purchases.getCustomerInfo();
+      return this.getLatestExpirationDate(customerInfo);
+    } catch (error) {
+      return null;
+    }
   }
 
   /**
    * Map plan ID to IAP product ID
    */
-  getProductIdForPlan(planId: string): string | null {
-    const planMap: Record<string, string> = {
-      'monthly': IAP_PRODUCT_IDS.MONTHLY,
-      'quarterly': IAP_PRODUCT_IDS.QUARTERLY,
-      'semi_annual': IAP_PRODUCT_IDS.SEMI_ANNUAL,
-    };
-    
-    return planMap[planId] || null;
+  getProductIdForPlan(planId: string): IAPProductId | null {
+    return PLAN_TO_PRODUCT_MAP[planId] || null;
   }
 
   /**
    * Check if we should use IAP for this platform
    */
   shouldUseIAP(): boolean {
-    // Only use IAP on iOS for US App Store compliance
-    return Platform.OS === 'ios';
+    return Platform.OS === 'ios' || Platform.OS === 'android';
+  }
+
+  /**
+   * Ensure service is initialized
+   */
+  private ensureInitialized(): void {
+    if (!this.isInitialized) {
+      throw new IAPServiceError('NOT_INITIALIZED', 'IAP service not initialized. Call initialize() first.');
+    }
+  }
+
+  /**
+   * Get RevenueCat purchaser info (for debugging)
+   */
+  async getDebugInfo(): Promise<Record<string, unknown>> {
+    if (!this.isIAPAvailable()) {
+      return { error: 'IAP not available' };
+    }
+
+    try {
+      const customerInfo = await Purchases.getCustomerInfo();
+      return {
+        originalAppUserId: customerInfo.originalAppUserId,
+        firstSeen: customerInfo.firstSeen,
+        originalApplicationVersion: customerInfo.originalApplicationVersion,
+        managementURL: customerInfo.managementURL,
+        entitlements: customerInfo.entitlements,
+      };
+    } catch (error) {
+      return { error: String(error) };
+    }
   }
 }
 
+// ============================================================================
+// Export
+// ============================================================================
+
 export const iapService = new IAPService();
-export { IAP_PRODUCT_IDS };
+export { IAPServiceError };

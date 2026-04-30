@@ -52,8 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       'payment',
     ];
 
-    const isInAllowedScreen = allowedScreens.some((screen) =>
-      pathname.includes(screen),
+    const isInAllowedScreen = allowedScreens.some(
+      (screen) => segments[0] === screen || pathname.startsWith(`/${screen}`),
     );
 
     console.log('[AuthContext] Navigation check:', {
@@ -214,6 +214,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('[AuthContext] Refreshing user data');
       const response = await authService.getCurrentUser();
+      if (!response) {
+        console.warn('[AuthContext] No user data returned from refresh');
+        return;
+      }
       const refreshedUser = response.data || response;
       setUser(refreshedUser);
       console.log('[AuthContext] User refreshed:', {
