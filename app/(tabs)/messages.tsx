@@ -28,6 +28,7 @@ export default function MessagesScreen() {
     try {
       if (!refreshing) setLoading(true);
       const response = await matchService.getMatches();
+      console.log('[MessagesScreen] Loaded matches:', response.map(m => ({ match_id: m.match_id, name: m.first_name })));
       setMatches(response);
     } catch (error) {
       console.error('[Anointed Innovations] Error fetching matches:', error);
@@ -47,7 +48,9 @@ export default function MessagesScreen() {
     router.push(`/chat/${matchId}`);
   };
 
-  const renderMatchItem = ({ item }: { item: Match }) => (
+  const renderMatchItem = ({ item }: { item: Match }) => {
+    console.log('[MessagesScreen] Rendering match:', { match_id: item.match_id, name: item.first_name });
+    return (
     <TouchableOpacity 
       onPress={() => handleChatPress(item.match_id)}
       activeOpacity={0.7}
@@ -79,7 +82,8 @@ export default function MessagesScreen() {
         </CardContent>
       </Card>
     </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <View className="flex-1 bg-linear-to-b from-ocean-100 via-ocean-50 to-ocean-100">
