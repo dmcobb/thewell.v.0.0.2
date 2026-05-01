@@ -27,8 +27,6 @@ export default function ChatScreen() {
   const { matchId } = useLocalSearchParams();
   const { user } = useAuth();
   
-  console.log('[ChatScreen] Mounting with matchId param:', matchId);
-  
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -94,11 +92,8 @@ export default function ChatScreen() {
   const fetchChatData = async () => {
     try {
       setLoading(true);
-      console.log('[ChatScreen] fetchChatData called with matchId:', matchId);
       if (matchId && isMounted.current) {
-        console.log('[ChatScreen] Calling getOrCreateConversation with:', matchId);
         const conversation = await messageService.getOrCreateConversation(matchId as string);
-        console.log('[ChatScreen] Got conversation:', conversation);
         setConversationId(conversation.id);
         const matchDetails = await matchService.getMatchDetails(matchId as string);
         setReceiverInfo(matchDetails);
@@ -120,18 +115,16 @@ export default function ChatScreen() {
   };
 
   const handleSendMessage = async () => {
-    console.log('[ChatScreen] handleSendMessage called. conversationId:', conversationId, 'matchId:', matchId);
     if (!messageText.trim() || !conversationId) {
-      console.log('[ChatScreen] Cannot send - missing text or conversationId');
       return;
     }
     const textToSend = messageText.trim();
     setMessageText('');
     setSending(true);
     try {
-      console.log('[ChatScreen] Sending message to conversationId:', conversationId);
-      await messageService.sendMessage(conversationId, textToSend, 'text');
-      console.log('[ChatScreen] Message sent successfully');
+      const sentMessage = await messageService.sendMessage(conversationId, textToSend, 'text');
+      // Add sent message to state so it appears in FlatList
+      setMessages(prev => [...prev, sentMessage]);
     } catch (error: any) {
       console.error('[ChatScreen] Error sending message:', error);
       console.error('[ChatScreen] Send error details:', error?.message);
@@ -394,7 +387,6 @@ export default function ChatScreen() {
         renderItem={renderMessage}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16 }}
-        inverted // Standard for chat apps
         showsVerticalScrollIndicator={false}
       />
 

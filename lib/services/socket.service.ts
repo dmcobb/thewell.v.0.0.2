@@ -7,11 +7,6 @@ class SocketService {
   private listeners: Map<string, Set<Function>> = new Map()
 
   async connect(): Promise<void> {
-    if (this.socket?.connected) {
-      console.log("[Anointed Innovations] Socket already connected")
-      return
-    }
-
     try {
       const token = await AsyncStorage.getItem("authToken")
 
@@ -29,12 +24,8 @@ class SocketService {
         reconnectionAttempts: 5,
       })
 
-      this.socket.on("connect", () => {
-        console.log("[Anointed Innovations] Socket connected:", this.socket?.id)
-      })
-
       this.socket.on("disconnect", (reason) => {
-        console.log("[Anointed Innovations] Socket disconnected:", reason)
+        console.warn("[Anointed Innovations] Socket disconnected:", reason)
       })
 
       this.socket.on("connect_error", (error) => {

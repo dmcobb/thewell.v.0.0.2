@@ -42,7 +42,18 @@ class MessageService {
   }
 
   async getMessages(conversationId: string): Promise<Message[]> {
-    return apiClient.get<Message[]>(API_ENDPOINTS.MESSAGES.GET_MESSAGES(conversationId))
+    const response = await apiClient.get<{ success: boolean; data: any[] }>(API_ENDPOINTS.MESSAGES.GET_MESSAGES(conversationId))
+    // Transform snake_case to camelCase to match Message interface
+    return response.data.map((msg) => ({
+      id: msg.id,
+      conversationId: msg.conversation_id,
+      receiverId: msg.receiver_id,
+      senderId: msg.sender_id,
+      content: msg.content,
+      type: msg.message_type || 'text',
+      createdAt: msg.created_at,
+      read: msg.is_read || false,
+    }))
   }
 
   async sendMessage(
@@ -50,11 +61,23 @@ class MessageService {
     content: string,
     type: "text" | "image" | "video" = "text",
   ): Promise<Message> {
-    return apiClient.post<Message>(API_ENDPOINTS.MESSAGES.SEND_MESSAGE(conversationId), {
+    const response = await apiClient.post<{ success: boolean; data: any }>(API_ENDPOINTS.MESSAGES.SEND_MESSAGE(conversationId), {
       conversationId,
       content,
       type,
     })
+    // Transform snake_case to camelCase to match Message interface
+    const msg = response.data
+    return {
+      id: msg.id,
+      conversationId: msg.conversation_id,
+      receiverId: msg.receiver_id,
+      senderId: msg.sender_id,
+      content: msg.content,
+      type: msg.message_type || 'text',
+      createdAt: msg.created_at,
+      read: msg.is_read || false,
+    }
   }
 
   async deleteMessage(messageId: string): Promise<{ success: boolean }> {
