@@ -280,8 +280,11 @@ class IAPService {
       // Make the purchase
       const { customerInfo, productIdentifier } = await Purchases.purchasePackage(packageToPurchase);
 
-      // Check if purchase was successful
-      if (!customerInfo.entitlements.active['premium']) {
+      // Check if purchase was successful (premium or ad_free entitlement)
+      const hasPremium = customerInfo.entitlements.active['premium'];
+      const hasAdFree = customerInfo.entitlements.active['ad_free'];
+      
+      if (!hasPremium && !hasAdFree) {
         return {
           success: false,
           message: 'Purchase completed but entitlement not granted',

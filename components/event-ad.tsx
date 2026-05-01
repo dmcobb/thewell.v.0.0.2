@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Linking, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import {
   Calendar,
@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { adService, type EventAd } from '@/lib/services/ad.service';
 import { subscriptionService } from '@/lib/services/subscription.service';
+import { iapService, IAP_PRODUCT_IDS } from '@/lib/services/iap.service';
 
 interface EventAdProps {
   ad: EventAd;
@@ -57,20 +58,41 @@ export function EventAd({ ad, onImpression, onClick }: EventAdProps) {
     
     setProcessing(true);
     try {
-      // Create checkout session for ad-free subscription
-      const sessionResult = await subscriptionService.createCheckoutSession('adfree');
-      
-      if (!sessionResult.success) {
-        throw new Error('Failed to create checkout session');
-      }
-
-      const checkoutUrl = sessionResult.data.checkout_url;
-      const supported = await Linking.canOpenURL(checkoutUrl);
-      
-      if (supported) {
-        await Linking.openURL(checkoutUrl);
+      // Use IAP on iOS/Android, external checkout on web
+      if (Platform.OS === 'ios' || Platform.OS === 'android') {
+        // Initialize IAP and purchase Ad Free subscription
+        const available = await iapService.initialize();
+        if (!available) {
+          throw new Error('In-App Purchases not available on this device');
+        }
+        
+        const result = await iapService.purchaseAsync(IAP_PRODUCT_IDS.AD_FREE);
+        
+        if (result.success) {
+          Alert.alert(
+            'Success!',
+            'You\'ve subscribed to Ad-Free. Enjoy an ad-free experience!',
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert('Purchase Failed', result.message);
+        }
       } else {
-        Alert.alert('Error', 'Could not open checkout page. Please try again.');
+        // Web/External checkout flow
+        const sessionResult = await subscriptionService.createCheckoutSession('adfree');
+        
+        if (!sessionResult.success) {
+          throw new Error('Failed to create checkout session');
+        }
+
+        const checkoutUrl = sessionResult.data.checkout_url;
+        const supported = await Linking.canOpenURL(checkoutUrl);
+        
+        if (supported) {
+          await Linking.openURL(checkoutUrl);
+        } else {
+          Alert.alert('Error', 'Could not open checkout page. Please try again.');
+        }
       }
     } catch (error) {
       console.error('[EventAd] Error starting AdFree checkout:', error);
