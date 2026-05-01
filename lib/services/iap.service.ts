@@ -23,6 +23,7 @@ export const IAP_PRODUCT_IDS = {
   MONTHLY: 'com.thewell.premium.monthly',
   QUARTERLY: 'com.thewell.premium.quarterly',
   SEMI_ANNUAL: 'com.thewell.premium.semiannual',
+  AD_FREE: 'com.thewell.ad_free',
 } as const;
 
 const PLAN_TO_PRODUCT_MAP: Record<string, IAPProductId> = {
