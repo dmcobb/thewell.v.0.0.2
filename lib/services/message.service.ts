@@ -27,7 +27,7 @@ export interface Conversation {
 class MessageService {
   async getOrCreateConversation(matchId: string): Promise<Conversation> {
     const response = await apiClient.post<{ success: boolean; data: Conversation; message?: string; error?: string }>(
-      API_ENDPOINTS.MESSAGES.GET_CONVERSATIONS.replace('/conversations', `/conversations/${matchId}`),
+      `/messages/conversations/match/${matchId}`,
       {},
     )
     // Handle error responses from backend
