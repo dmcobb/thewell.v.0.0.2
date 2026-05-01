@@ -155,6 +155,7 @@ class MatchService {
 
   async getMatches(): Promise<Match[]> {
     const response = await apiClient.get<{ success: boolean; data: Match[] }>(API_ENDPOINTS.MATCHES.GET_MATCHES)
+    console.log('[MatchService] Raw getMatches response:', JSON.stringify(response.data, null, 2))
     return response.data
   }
 
